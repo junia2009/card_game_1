@@ -34,15 +34,16 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7);
 scene.add(dirLight);
 
-// レンダーループ
+// レンダーループ（1本化）
 function animate() {
   requestAnimationFrame(animate);
-  card.rotation.y += 0.005;
+  // カード全体を少し揺らす演出例（必要なら）
+  // cardMeshes.forEach((mesh, i) => { mesh.rotation.y = Math.sin(Date.now() * 0.001 + i) * 0.02; });
   renderer.render(scene, camera);
 }
 animate();
 
-// リサイズ対応
+// リサイズ対応（1つだけ残す）
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
