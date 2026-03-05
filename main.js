@@ -128,21 +128,31 @@ if (stock.length > 0) {
 }
 // --- カードの表裏切り替え（めくる）機能 ---
 renderer.domElement.addEventListener('pointerdown', (event) => {
-  // マウス座標を正規化
+  // デバッグ用：クリック座標をログ
+  // console.log("pointerdown", event.clientX, event.clientY);
   const rect = renderer.domElement.getBoundingClientRect();
   const mouse = {
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
     y: -((event.clientY - rect.top) / rect.height) * 2 + 1
   };
-  // レイキャスト
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(cardMeshes);
+  // ★再帰 true（子メッシュも拾う）
+  const intersects = raycaster.intersectObjects(cardMeshes, true);
   if (intersects.length > 0) {
-    const mesh = intersects[0].object;
-    // 場札の一番上で裏向きのカードのみめくれる
+    // ★userData を持つ親まで辿る
+    let obj = intersects[0].object;
+    while (
+      obj &&
+      (!obj.userData || obj.userData.col === undefined || obj.userData.row === undefined) &&
+      obj.parent
+    ) {
+      obj = obj.parent;
+    }
+    const mesh = obj;
     if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
       const { col, row } = mesh.userData;
+      // 場札の一番上で裏向きのカードのみめくれる
       if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
         tableau[col][row].faceUp = true;
         // メッシュを作り直して置き換え
@@ -151,7 +161,8 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         newMesh.userData = mesh.userData;
         scene.remove(mesh);
         scene.add(newMesh);
-        cardMeshes[cardMeshes.indexOf(mesh)] = newMesh;
+        const idx = cardMeshes.indexOf(mesh);
+        if (idx !== -1) cardMeshes[idx] = newMesh;
       }
     }
   }
