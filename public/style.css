@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #2e3548 0%, #1a1f2b 100%);
+  min-height: 100vh;
+  font-family: 'Segoe UI', 'Meiryo', sans-serif;
+}
+
+#three-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
