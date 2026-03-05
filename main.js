@@ -110,6 +110,7 @@ for (let col = 0; col < 7; col++) {
     mesh.position.x = -4 + col * 1.3;
     mesh.position.z = -2 + row * 0.18;
     mesh.position.y = 0.03 + row * 0.03;
+    mesh.userData = { col, row, card };
     scene.add(mesh);
     cardMeshes.push(mesh);
   }
@@ -121,9 +122,40 @@ if (stock.length > 0) {
   mesh.position.x = 6;
   mesh.position.z = -2;
   mesh.position.y = 0.03;
+  mesh.userData = { stock: true, index: stock.length - 1 };
   scene.add(mesh);
   cardMeshes.push(mesh);
 }
+// --- カードの表裏切り替え（めくる）機能 ---
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  // マウス座標を正規化
+  const rect = renderer.domElement.getBoundingClientRect();
+  const mouse = {
+    x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
+    y: -((event.clientY - rect.top) / rect.height) * 2 + 1
+  };
+  // レイキャスト
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(cardMeshes);
+  if (intersects.length > 0) {
+    const mesh = intersects[0].object;
+    // 場札の一番上で裏向きのカードのみめくれる
+    if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
+      const { col, row } = mesh.userData;
+      if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
+        tableau[col][row].faceUp = true;
+        // メッシュを作り直して置き換え
+        const newMesh = createCardMesh(tableau[col][row], true);
+        newMesh.position.copy(mesh.position);
+        newMesh.userData = mesh.userData;
+        scene.remove(mesh);
+        scene.add(newMesh);
+        cardMeshes[cardMeshes.indexOf(mesh)] = newMesh;
+      }
+    }
+  }
+});
 
 
 
