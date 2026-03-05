@@ -1,4 +1,3 @@
-// Three.jsのCDNを使って簡単な3Dカード表示サンプル
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
 
 // Three.jsのCDNを使って簡単な3Dカード表示サンプル
