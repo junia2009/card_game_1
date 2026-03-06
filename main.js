@@ -1,3 +1,54 @@
+// ハイライト用
+let highlightMeshes = [];
+
+function clearHighlights() {
+  for (const mesh of highlightMeshes) scene.remove(mesh);
+  highlightMeshes = [];
+}
+
+function showHighlights(selected) {
+  clearHighlights();
+  if (!selected) return;
+  // 移動可能な場札列
+  if (selected.type === 'tableau' || selected.type === 'waste') {
+    for (let col = 0; col < 7; col++) {
+      let card = null;
+      if (selected.type === 'tableau') card = tableau[selected.col][selected.row];
+      if (selected.type === 'waste') card = waste[waste.length - 1];
+      if (card && canMoveToTableau(card, col)) {
+        // 一番上のカードの上に枠
+        let y = 0.03;
+        for (let row = 0; row < tableau[col].length; row++) {
+          y += tableau[col][row].faceUp ? 0.22 : 0.10;
+        }
+        const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.x = -4 + col * 1.3;
+        mesh.position.z = -2 + tableau[col].length * 0.18;
+        mesh.position.y = y + 0.01;
+        scene.add(mesh);
+        highlightMeshes.push(mesh);
+      }
+    }
+    // 組札
+    for (let i = 0; i < 4; i++) {
+      let card = null;
+      if (selected.type === 'tableau') card = tableau[selected.col][selected.row];
+      if (selected.type === 'waste') card = waste[waste.length - 1];
+      if (card && canMoveToFoundation(card, foundations[i])) {
+        const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.25 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.x = -6 + i * 1.7;
+        mesh.position.z = 2.2;
+        mesh.position.y = 0.06;
+        scene.add(mesh);
+        highlightMeshes.push(mesh);
+      }
+    }
+  }
+}
 // カード選択状態
 let selected = null;
 
@@ -262,6 +313,7 @@ updateStockAndWasteMeshes();
 
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
+  clearHighlights();
   const rect = renderer.domElement.getBoundingClientRect();
   const mouse = {
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -282,6 +334,10 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         const { col, row } = mesh.userData;
         if (tableau[col][row].faceUp && row === tableau[col].length - 1) {
           selected = { type: 'tableau', col, row };
+          // 選択中カードを少し上に浮かせる
+          const mesh = cardMeshes.find(m => m.userData && m.userData.col === col && m.userData.row === row);
+          if (mesh) mesh.position.y += 0.18;
+          showHighlights(selected);
         }
         // 裏向きカードをめくる
         if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
@@ -292,12 +348,15 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
       // 捨て札の一番上
       else if (mesh.userData && mesh.userData.waste && waste.length > 0 && mesh.userData.index === waste.length - 1) {
         selected = { type: 'waste' };
+        // 捨て札選択時もハイライト
+        showHighlights(selected);
       }
       // 組札の一番上
       else if (mesh.userData && mesh.userData.foundationCard) {
         const i = mesh.userData.foundationIndex;
         if (foundations[i].length > 0) {
           selected = { type: 'foundation', index: i };
+          // 組札選択時は特にハイライトなし
         }
       }
       // 山札クリックで1枚めくる
@@ -318,6 +377,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
       }
     } else {
       // 2. 移動先クリック
+      clearHighlights();
       // 組札枠
       if (mesh.userData && mesh.userData.foundation) {
         const fIdx = mesh.userData.index;
