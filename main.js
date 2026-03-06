@@ -1,3 +1,20 @@
+// カード選択状態
+let selected = null;
+
+// カード移動ルール判定
+function canMoveToFoundation(card, foundation) {
+  if (foundation.length === 0) return card.rank === 1; // エースのみ
+  const top = foundation[foundation.length - 1];
+  return top.suit === card.suit && card.rank === top.rank + 1;
+}
+function canMoveToTableau(card, destCol) {
+  if (tableau[destCol].length === 0) return card.rank === 13; // キングのみ
+  const top = tableau[destCol][tableau[destCol].length - 1];
+  // 赤黒交互、数字は1つ小さい
+  const isRed = s => s === 'heart' || s === 'diamond';
+  return top.faceUp && isRed(top.suit) !== isRed(card.suit) && card.rank === top.rank - 1;
+}
+
 // Three.jsのCDNを使って簡単な3Dカード表示サンプル
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
 
@@ -117,14 +134,33 @@ for (let col = 0; col < 7; col++) {
 }
 
 // 山札の一番上だけ表示
+
 // 捨て札（waste）
 const waste = [];
 
+// 組札（foundation）4つ
+const foundations = [[], [], [], []];
+
+// ゴール枠の表示
+const foundationMeshes = [];
+for (let i = 0; i < 4; i++) {
+  const geo = new THREE.BoxGeometry(1, 0.021, 1.4);
+  const mat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.25 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.x = -6 + i * 1.7;
+  mesh.position.z = 2.2;
+  mesh.position.y = 0.03;
+  mesh.userData = { foundation: true, index: i };
+  scene.add(mesh);
+  foundationMeshes.push(mesh);
+}
+
+
 function updateStockAndWasteMeshes() {
-  // 既存の stock/waste メッシュを削除
+  // 既存の stock/waste/foundation メッシュを削除
   for (let i = cardMeshes.length - 1; i >= 0; i--) {
     const mesh = cardMeshes[i];
-    if (mesh.userData && (mesh.userData.stock || mesh.userData.waste)) {
+    if (mesh.userData && (mesh.userData.stock || mesh.userData.waste || mesh.userData.foundationCard)) {
       scene.remove(mesh);
       cardMeshes.splice(i, 1);
     }
@@ -149,10 +185,24 @@ function updateStockAndWasteMeshes() {
     scene.add(mesh);
     cardMeshes.push(mesh);
   }
+  // 組札の一番上
+  for (let i = 0; i < 4; i++) {
+    if (foundations[i].length > 0) {
+      const card = foundations[i][foundations[i].length - 1];
+      const mesh = createCardMesh(card, true);
+      mesh.position.x = -6 + i * 1.7;
+      mesh.position.z = 2.2;
+      mesh.position.y = 0.03;
+      mesh.userData = { foundationCard: true, foundationIndex: i };
+      scene.add(mesh);
+      cardMeshes.push(mesh);
+    }
+  }
 }
 
 updateStockAndWasteMeshes();
 // --- カードの表裏切り替え（めくる）機能 ---
+
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -162,45 +212,93 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   };
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(cardMeshes, true);
+  const intersects = raycaster.intersectObjects(cardMeshes.concat(foundationMeshes), true);
   if (intersects.length > 0) {
-    // userData を持つ親まで辿る
     let obj = intersects[0].object;
-    while (obj && !obj.userData && obj.parent) {
-      obj = obj.parent;
-    }
+    while (obj && !obj.userData && obj.parent) obj = obj.parent;
     const mesh = obj;
-    // 場札のカードをめくる
-    if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
-      const { col, row } = mesh.userData;
-      if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
-        tableau[col][row].faceUp = true;
-        const newMesh = createCardMesh(tableau[col][row], true);
-        newMesh.position.copy(mesh.position);
-        newMesh.userData = mesh.userData;
-        scene.remove(mesh);
-        scene.add(newMesh);
-        const idx = cardMeshes.indexOf(mesh);
-        if (idx !== -1) cardMeshes[idx] = newMesh;
-      }
-    }
-    // 山札クリックで1枚めくる
-    else if (mesh.userData && mesh.userData.stock) {
-      if (stock.length > 0) {
-        const card = stock.pop();
-        card.faceUp = true;
-        waste.push(card);
-        updateStockAndWasteMeshes();
-      } else if (waste.length > 0) {
-        // 山札が空なら捨て札を山札に戻す
-        while (waste.length > 0) {
-          const card = waste.pop();
-          card.faceUp = false;
-          stock.push(card);
+
+    // 1. カード選択（場札・捨て札・組札）
+    if (!selected) {
+      // 場札の表向きカード
+      if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
+        const { col, row } = mesh.userData;
+        if (tableau[col][row].faceUp && row === tableau[col].length - 1) {
+          selected = { type: 'tableau', col, row };
         }
-        updateStockAndWasteMeshes();
+      }
+      // 捨て札の一番上
+      else if (mesh.userData && mesh.userData.waste && waste.length > 0 && mesh.userData.index === waste.length - 1) {
+        selected = { type: 'waste' };
+      }
+      // 組札の一番上
+      else if (mesh.userData && mesh.userData.foundationCard) {
+        const i = mesh.userData.foundationIndex;
+        if (foundations[i].length > 0) {
+          selected = { type: 'foundation', index: i };
+        }
+      }
+      // 山札クリックで1枚めくる
+      else if (mesh.userData && mesh.userData.stock) {
+        if (stock.length > 0) {
+          const card = stock.pop();
+          card.faceUp = true;
+          waste.push(card);
+          updateStockAndWasteMeshes();
+        } else if (waste.length > 0) {
+          while (waste.length > 0) {
+            const card = waste.pop();
+            card.faceUp = false;
+            stock.push(card);
+          }
+          updateStockAndWasteMeshes();
+        }
+      }
+    } else {
+      // 2. 移動先クリック
+      // 組札枠
+      if (mesh.userData && mesh.userData.foundation) {
+        const fIdx = mesh.userData.index;
+        let card = null;
+        if (selected.type === 'tableau') {
+          card = tableau[selected.col][selected.row];
+        } else if (selected.type === 'waste') {
+          card = waste[waste.length - 1];
+        }
+        if (card && canMoveToFoundation(card, foundations[fIdx])) {
+          // 移動
+          if (selected.type === 'tableau') tableau[selected.col].pop();
+          if (selected.type === 'waste') waste.pop();
+          foundations[fIdx].push(card);
+          updateStockAndWasteMeshes();
+        }
+        selected = null;
+      }
+      // 場札列
+      else if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
+        const destCol = mesh.userData.col;
+        let card = null;
+        if (selected.type === 'tableau') {
+          // 1枚のみ移動（複数移動は未対応）
+          card = tableau[selected.col][selected.row];
+        } else if (selected.type === 'waste') {
+          card = waste[waste.length - 1];
+        }
+        if (card && canMoveToTableau(card, destCol)) {
+          if (selected.type === 'tableau') tableau[selected.col].pop();
+          if (selected.type === 'waste') waste.pop();
+          tableau[destCol].push(card);
+          updateStockAndWasteMeshes();
+        }
+        selected = null;
+      } else {
+        // それ以外クリックで選択解除
+        selected = null;
       }
     }
+  } else {
+    // 何もヒットしなければ選択解除
+    selected = null;
   }
 });
 
