@@ -300,12 +300,15 @@ function updateStockAndWasteMeshes() {
     cardMeshes.push(mesh);
   }
   // 組札の一番上
+  // ゴール（組札）はテーブル上端中央寄りに配置
+  const goalStartX = startX + 1.0;
+  const goalZ = startZ + tableHeight - 1.1;
   for (let i = 0; i < 4; i++) {
     if (foundations[i].length > 0) {
       const card = foundations[i][foundations[i].length - 1];
       const mesh = createCardMesh(card, true);
-      mesh.position.x = startX + i * 1.7;
-      mesh.position.z = startZ + tableHeight - 1.7;
+      mesh.position.x = goalStartX + i * 1.7;
+      mesh.position.z = goalZ;
       mesh.position.y = 0.03;
       mesh.userData = { foundationCard: true, foundationIndex: i };
       scene.add(mesh);
