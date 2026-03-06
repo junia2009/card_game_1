@@ -265,6 +265,9 @@ for (let i = 0; i < 4; i++) {
 
 
 function updateStockAndWasteMeshes() {
+  // テーブル中心基準で配置
+  const startX = -tableWidth / 2 + 1.1;
+  const startZ = -tableHeight / 2 + 1.0;
   // 既存の stock/waste/foundation メッシュを削除
   for (let i = cardMeshes.length - 1; i >= 0; i--) {
     const mesh = cardMeshes[i];
