@@ -84,7 +84,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 container.appendChild(renderer.domElement);
 
 // テーブル
-const tableGeometry = new THREE.BoxGeometry(12, 0.5, 8);
+const tableWidth = 10.5;
+const tableHeight = 6.5;
+const tableGeometry = new THREE.BoxGeometry(tableWidth, 0.5, tableHeight);
 const tableMaterial = new THREE.MeshPhysicalMaterial({ color: 0x2e8b57, roughness: 0.5, metalness: 0.2 });
 const table = new THREE.Mesh(tableGeometry, tableMaterial);
 table.position.y = -0.25;
@@ -219,18 +221,20 @@ function layoutTableauMeshes() {
       cardMeshes.splice(i, 1);
     }
   }
+  // テーブル中心基準で配置
+  const startX = -tableWidth / 2 + 1.1;
+  const startZ = -tableHeight / 2 + 1.0;
   for (let col = 0; col < 7; col++) {
     let y = 0.03;
     for (let row = 0; row < tableau[col].length; row++) {
       const card = tableau[col][row];
       const mesh = createCardMesh(card, card.faceUp);
-      mesh.position.x = -4 + col * 1.3;
-      mesh.position.z = -2 + row * 0.18;
+      mesh.position.x = startX + col * 1.3;
+      mesh.position.z = startZ + row * 0.18;
       mesh.position.y = y;
       mesh.userData = { col, row, card };
       scene.add(mesh);
       cardMeshes.push(mesh);
-      // 表向きは広め、裏向きは狭めに重ねる
       y += card.faceUp ? 0.22 : 0.10;
     }
   }
@@ -272,8 +276,8 @@ function updateStockAndWasteMeshes() {
   // 山札の一番上
   if (stock.length > 0) {
     const mesh = createCardMesh(stock[stock.length - 1], false);
-    mesh.position.x = 6;
-    mesh.position.z = -2;
+    mesh.position.x = startX + 7 * 1.3 + 1.0;
+    mesh.position.z = startZ;
     mesh.position.y = 0.03;
     mesh.userData = { stock: true, index: stock.length - 1 };
     scene.add(mesh);
@@ -282,8 +286,8 @@ function updateStockAndWasteMeshes() {
   // 捨て札（最新の1枚だけ大きく表示）
   if (waste.length > 0) {
     const mesh = createCardMesh(waste[waste.length - 1], true);
-    mesh.position.x = 7.2;
-    mesh.position.z = -2;
+    mesh.position.x = startX + 7 * 1.3 + 2.3;
+    mesh.position.z = startZ;
     mesh.position.y = 0.03;
     mesh.userData = { waste: true, index: waste.length - 1 };
     scene.add(mesh);
@@ -294,8 +298,8 @@ function updateStockAndWasteMeshes() {
     if (foundations[i].length > 0) {
       const card = foundations[i][foundations[i].length - 1];
       const mesh = createCardMesh(card, true);
-      mesh.position.x = -6 + i * 1.7;
-      mesh.position.z = 2.2;
+      mesh.position.x = startX + i * 1.7;
+      mesh.position.z = startZ + tableHeight - 1.7;
       mesh.position.y = 0.03;
       mesh.userData = { foundationCard: true, foundationIndex: i };
       scene.add(mesh);
