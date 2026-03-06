@@ -74,7 +74,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x223);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 5, 10);
+camera.position.set(0, 11, 0.1); // より上から見下ろす
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
