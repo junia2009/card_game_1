@@ -9,6 +9,9 @@ function clearHighlights() {
 function showHighlights(selected) {
   clearHighlights();
   if (!selected) return;
+  // テーブル中心基準で配置
+  const startX = -tableWidth / 2 + 1.1;
+  const startZ = -tableHeight / 2 + 1.0;
   // 移動可能な場札列
   if (selected.type === 'tableau' || selected.type === 'waste') {
     for (let col = 0; col < 7; col++) {
@@ -24,8 +27,8 @@ function showHighlights(selected) {
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
         const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.x = -4 + col * 1.3;
-        mesh.position.z = -2 + tableau[col].length * 0.18;
+        mesh.position.x = startX + col * 1.3;
+        mesh.position.z = startZ + tableau[col].length * 0.18;
         mesh.position.y = y + 0.01;
         mesh.userData = { highlightTableau: true, col };
         scene.add(mesh);
@@ -41,8 +44,8 @@ function showHighlights(selected) {
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
         const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.25 });
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.x = -6 + i * 1.7;
-        mesh.position.z = 2.2;
+        mesh.position.x = startX + i * 1.7;
+        mesh.position.z = startZ + tableHeight - 1.7;
         mesh.position.y = 0.06;
         mesh.userData = { highlightFoundation: true, foundationIndex: i };
         scene.add(mesh);
