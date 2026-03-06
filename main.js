@@ -283,13 +283,15 @@ function updateStockAndWasteMeshes() {
     scene.add(mesh);
     cardMeshes.push(mesh);
   }
-  // 捨て札の一番上
-  if (waste.length > 0) {
-    const mesh = createCardMesh(waste[waste.length - 1], true);
-    mesh.position.x = 4.5;
+  // 捨て札（最大3枚まで横並びで表示）
+  const wasteShowCount = Math.min(3, waste.length);
+  for (let i = 0; i < wasteShowCount; i++) {
+    const idx = waste.length - wasteShowCount + i;
+    const mesh = createCardMesh(waste[idx], true);
+    mesh.position.x = 7.2 + i * 1.1;
     mesh.position.z = -2;
     mesh.position.y = 0.03;
-    mesh.userData = { waste: true, index: waste.length - 1 };
+    mesh.userData = { waste: true, index: idx };
     scene.add(mesh);
     cardMeshes.push(mesh);
   }
