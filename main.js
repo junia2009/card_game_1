@@ -16,7 +16,7 @@ function showHighlights(selected) {
       if (selected.type === 'tableau') card = tableau[selected.col][selected.row];
       if (selected.type === 'waste') card = waste[waste.length - 1];
       if (card && canMoveToTableau(card, col)) {
-        // 一番上のカードの上に枠
+        // 一番上のカードの上に枠 or 空列枠
         let y = 0.03;
         for (let row = 0; row < tableau[col].length; row++) {
           y += tableau[col][row].faceUp ? 0.22 : 0.10;
@@ -27,6 +27,7 @@ function showHighlights(selected) {
         mesh.position.x = -4 + col * 1.3;
         mesh.position.z = -2 + tableau[col].length * 0.18;
         mesh.position.y = y + 0.01;
+        mesh.userData = { highlightTableau: true, col };
         scene.add(mesh);
         highlightMeshes.push(mesh);
       }
@@ -43,6 +44,7 @@ function showHighlights(selected) {
         mesh.position.x = -6 + i * 1.7;
         mesh.position.z = 2.2;
         mesh.position.y = 0.06;
+        mesh.userData = { highlightFoundation: true, foundationIndex: i };
         scene.add(mesh);
         highlightMeshes.push(mesh);
       }
@@ -318,6 +320,7 @@ updateStockAndWasteMeshes();
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
   clearHighlights();
+  clearHighlights();
   const rect = renderer.domElement.getBoundingClientRect();
   const mouse = {
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -400,12 +403,11 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         }
         selected = null;
       }
-      // 場札列
+      // 場札列（カード上）
       else if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
         const destCol = mesh.userData.col;
         let card = null;
         if (selected.type === 'tableau') {
-          // 1枚のみ移動（複数移動は未対応）
           card = tableau[selected.col][selected.row];
         } else if (selected.type === 'waste') {
           card = waste[waste.length - 1];
@@ -417,7 +419,42 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
           updateStockAndWasteMeshes();
         }
         selected = null;
-      } else {
+      }
+      // 空の場札列枠
+      else if (mesh.userData && mesh.userData.highlightTableau) {
+        const destCol = mesh.userData.col;
+        let card = null;
+        if (selected.type === 'tableau') {
+          card = tableau[selected.col][selected.row];
+        } else if (selected.type === 'waste') {
+          card = waste[waste.length - 1];
+        }
+        if (card && canMoveToTableau(card, destCol)) {
+          if (selected.type === 'tableau') tableau[selected.col].pop();
+          if (selected.type === 'waste') waste.pop();
+          tableau[destCol].push(card);
+          updateStockAndWasteMeshes();
+        }
+        selected = null;
+      }
+      // 組札枠（ハイライト）
+      else if (mesh.userData && mesh.userData.highlightFoundation) {
+        const fIdx = mesh.userData.foundationIndex;
+        let card = null;
+        if (selected.type === 'tableau') {
+          card = tableau[selected.col][selected.row];
+        } else if (selected.type === 'waste') {
+          card = waste[waste.length - 1];
+        }
+        if (card && canMoveToFoundation(card, foundations[fIdx])) {
+          if (selected.type === 'tableau') tableau[selected.col].pop();
+          if (selected.type === 'waste') waste.pop();
+          foundations[fIdx].push(card);
+          updateStockAndWasteMeshes();
+        }
+        selected = null;
+      }
+      else {
         // それ以外クリックで選択解除
         selected = null;
       }
