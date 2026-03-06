@@ -80,21 +80,62 @@ function shuffle(deck) {
   }
 }
 
+
+// カード表面テクスチャ生成
+function createCardFaceTexture(card) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 180;
+  const ctx = canvas.getContext('2d');
+  // 背景
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // スート・数字
+  const suitSymbols = { spade: '♠', heart: '♥', diamond: '♦', club: '♣' };
+  const suitColorsCss = { spade: '#222', club: '#222', heart: '#b22', diamond: '#b22' };
+  ctx.font = 'bold 32px Segoe UI, Meiryo, sans-serif';
+  ctx.fillStyle = suitColorsCss[card.suit];
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  // 数字
+  let rankStr = card.rank;
+  if (card.rank === 1) rankStr = 'A';
+  else if (card.rank === 11) rankStr = 'J';
+  else if (card.rank === 12) rankStr = 'Q';
+  else if (card.rank === 13) rankStr = 'K';
+  ctx.fillText(rankStr, 10, 8);
+  // スート
+  ctx.font = 'bold 28px Segoe UI Symbol, serif';
+  ctx.fillText(suitSymbols[card.suit], 10, 44);
+  // 中央にも大きくスート
+  ctx.font = 'bold 60px Segoe UI Symbol, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(suitSymbols[card.suit], canvas.width/2, canvas.height/2);
+  return new THREE.CanvasTexture(canvas);
+}
+
 // カードメッシュ生成
 function createCardMesh(card, faceUp = true) {
   const geometry = new THREE.BoxGeometry(1, 0.02, 1.4);
-  const color = faceUp ? 0xffffff : 0x888888;
-  const material = new THREE.MeshPhysicalMaterial({ color, roughness: 0.3, metalness: 0.1, clearcoat: 1 });
-  const mesh = new THREE.Mesh(geometry, material);
+  let material;
   if (faceUp) {
-    // スート色で端にラインを入れる
-    const edgeGeometry = new THREE.BoxGeometry(0.9, 0.021, 0.1);
-    const edgeMaterial = new THREE.MeshBasicMaterial({ color: suitColors[card.suit] });
-    const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
-    edge.position.z = 0.6;
-    edge.position.y = 0.012;
-    mesh.add(edge);
+    // 表面にテクスチャ
+    const tex = createCardFaceTexture(card);
+    const materials = [
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // right
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // left
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // top
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // bottom
+      new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.3, metalness: 0.1, clearcoat: 1 }), // front
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }) // back
+    ];
+    material = materials;
+  } else {
+    // 裏面はグレー
+    material = new THREE.MeshPhysicalMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.1, clearcoat: 1 });
   }
+  const mesh = new THREE.Mesh(geometry, material);
   return mesh;
 }
 
