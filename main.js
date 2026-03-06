@@ -161,18 +161,32 @@ while (deckIndex < deck.length) {
 
 // 3Dで場札を並べる
 const cardMeshes = [];
-for (let col = 0; col < 7; col++) {
-  for (let row = 0; row < tableau[col].length; row++) {
-    const card = tableau[col][row];
-    const mesh = createCardMesh(card, card.faceUp);
-    mesh.position.x = -4 + col * 1.3;
-    mesh.position.z = -2 + row * 0.18;
-    mesh.position.y = 0.03 + row * 0.03;
-    mesh.userData = { col, row, card };
-    scene.add(mesh);
-    cardMeshes.push(mesh);
+function layoutTableauMeshes() {
+  // 既存の場札メッシュを削除
+  for (let i = cardMeshes.length - 1; i >= 0; i--) {
+    const mesh = cardMeshes[i];
+    if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
+      scene.remove(mesh);
+      cardMeshes.splice(i, 1);
+    }
+  }
+  for (let col = 0; col < 7; col++) {
+    let y = 0.03;
+    for (let row = 0; row < tableau[col].length; row++) {
+      const card = tableau[col][row];
+      const mesh = createCardMesh(card, card.faceUp);
+      mesh.position.x = -4 + col * 1.3;
+      mesh.position.z = -2 + row * 0.18;
+      mesh.position.y = y;
+      mesh.userData = { col, row, card };
+      scene.add(mesh);
+      cardMeshes.push(mesh);
+      // 表向きは広め、裏向きは狭めに重ねる
+      y += card.faceUp ? 0.22 : 0.10;
+    }
   }
 }
+layoutTableauMeshes();
 
 // 山札の一番上だけ表示
 
@@ -239,6 +253,8 @@ function updateStockAndWasteMeshes() {
       cardMeshes.push(mesh);
     }
   }
+  // 場札の再レイアウト
+  layoutTableauMeshes();
 }
 
 updateStockAndWasteMeshes();
@@ -266,6 +282,11 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         const { col, row } = mesh.userData;
         if (tableau[col][row].faceUp && row === tableau[col].length - 1) {
           selected = { type: 'tableau', col, row };
+        }
+        // 裏向きカードをめくる
+        if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
+          tableau[col][row].faceUp = true;
+          updateStockAndWasteMeshes(); // レイアウトも再描画
         }
       }
       // 捨て札の一番上
