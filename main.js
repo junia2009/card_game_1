@@ -117,19 +117,44 @@ for (let col = 0; col < 7; col++) {
 }
 
 // 山札の一番上だけ表示
-if (stock.length > 0) {
-  const mesh = createCardMesh(stock[stock.length - 1], false);
-  mesh.position.x = 6;
-  mesh.position.z = -2;
-  mesh.position.y = 0.03;
-  mesh.userData = { stock: true, index: stock.length - 1 };
-  scene.add(mesh);
-  cardMeshes.push(mesh);
+// 捨て札（waste）
+const waste = [];
+
+function updateStockAndWasteMeshes() {
+  // 既存の stock/waste メッシュを削除
+  for (let i = cardMeshes.length - 1; i >= 0; i--) {
+    const mesh = cardMeshes[i];
+    if (mesh.userData && (mesh.userData.stock || mesh.userData.waste)) {
+      scene.remove(mesh);
+      cardMeshes.splice(i, 1);
+    }
+  }
+  // 山札の一番上
+  if (stock.length > 0) {
+    const mesh = createCardMesh(stock[stock.length - 1], false);
+    mesh.position.x = 6;
+    mesh.position.z = -2;
+    mesh.position.y = 0.03;
+    mesh.userData = { stock: true, index: stock.length - 1 };
+    scene.add(mesh);
+    cardMeshes.push(mesh);
+  }
+  // 捨て札の一番上
+  if (waste.length > 0) {
+    const mesh = createCardMesh(waste[waste.length - 1], true);
+    mesh.position.x = 4.5;
+    mesh.position.z = -2;
+    mesh.position.y = 0.03;
+    mesh.userData = { waste: true, index: waste.length - 1 };
+    scene.add(mesh);
+    cardMeshes.push(mesh);
+  }
 }
+
+updateStockAndWasteMeshes();
 // --- カードの表裏切り替え（めくる）機能 ---
+
 renderer.domElement.addEventListener('pointerdown', (event) => {
-  // デバッグ用：クリック座標をログ
-  // console.log("pointerdown", event.clientX, event.clientY);
   const rect = renderer.domElement.getBoundingClientRect();
   const mouse = {
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -137,25 +162,19 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   };
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
-  // ★再帰 true（子メッシュも拾う）
   const intersects = raycaster.intersectObjects(cardMeshes, true);
   if (intersects.length > 0) {
-    // ★userData を持つ親まで辿る
+    // userData を持つ親まで辿る
     let obj = intersects[0].object;
-    while (
-      obj &&
-      (!obj.userData || obj.userData.col === undefined || obj.userData.row === undefined) &&
-      obj.parent
-    ) {
+    while (obj && !obj.userData && obj.parent) {
       obj = obj.parent;
     }
     const mesh = obj;
+    // 場札のカードをめくる
     if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
       const { col, row } = mesh.userData;
-      // 場札の一番上で裏向きのカードのみめくれる
       if (!tableau[col][row].faceUp && row === tableau[col].length - 1) {
         tableau[col][row].faceUp = true;
-        // メッシュを作り直して置き換え
         const newMesh = createCardMesh(tableau[col][row], true);
         newMesh.position.copy(mesh.position);
         newMesh.userData = mesh.userData;
@@ -163,6 +182,23 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         scene.add(newMesh);
         const idx = cardMeshes.indexOf(mesh);
         if (idx !== -1) cardMeshes[idx] = newMesh;
+      }
+    }
+    // 山札クリックで1枚めくる
+    else if (mesh.userData && mesh.userData.stock) {
+      if (stock.length > 0) {
+        const card = stock.pop();
+        card.faceUp = true;
+        waste.push(card);
+        updateStockAndWasteMeshes();
+      } else if (waste.length > 0) {
+        // 山札が空なら捨て札を山札に戻す
+        while (waste.length > 0) {
+          const card = waste.pop();
+          card.faceUp = false;
+          stock.push(card);
+        }
+        updateStockAndWasteMeshes();
       }
     }
   }
