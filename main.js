@@ -90,12 +90,6 @@ const table = new THREE.Mesh(tableGeometry, tableMaterial);
 table.position.y = -0.25;
 scene.add(table);
 
-// カード（シンプルな白い板）
-const cardGeometry = new THREE.BoxGeometry(1, 0.02, 1.4);
-const cardMaterial = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.1, clearcoat: 1 });
-const card = new THREE.Mesh(cardGeometry, cardMaterial);
-card.position.set(0, 0.03, 0);
-scene.add(card);
 
 // ライト（1回だけ追加）
 const ambient = new THREE.AmbientLight(0xffffff, 0.7);
