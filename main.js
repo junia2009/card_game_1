@@ -171,15 +171,17 @@ function createCardMesh(card, faceUp = true) {
   const geometry = new THREE.BoxGeometry(1, 0.02, 1.4);
   let material;
   if (faceUp) {
-    // 表面にテクスチャ
+    // 表面（上面=2番目）にテクスチャ
     const tex = createCardFaceTexture(card);
+    // BoxGeometryの面割り当て: [右, 左, 上, 下, 前, 後]
+    // 上面(2)にテクスチャ、他は白
     const materials = [
       new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // right
       new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // left
-      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // top
+      new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.3, metalness: 0.1, clearcoat: 1 }), // top (表)
       new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // bottom
-      new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.3, metalness: 0.1, clearcoat: 1 }), // front
-      new THREE.MeshPhysicalMaterial({ color: 0xffffff }) // back
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff }), // front
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff })  // back
     ];
     material = materials;
   } else {
