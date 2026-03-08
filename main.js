@@ -352,8 +352,12 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(cardMeshes.concat(foundationMeshes, highlightMeshes), true);
-  if (intersects.length > 0) {
-    let obj = intersects[0].object;
+  // ★ ハイライト枠を優先して採用
+  const pick = intersects.find(it => it.object?.userData?.highlightTableau || it.object?.userData?.highlightFoundation)
+            || intersects.find(it => it.object?.userData?.foundation)
+            || intersects[0];
+  if (pick) {
+    let obj = pick.object;
     while (obj && !obj.userData && obj.parent) obj = obj.parent;
     const mesh = obj;
 
@@ -464,6 +468,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
           const fromRow = selected.row;
           if (fromCol === destCol) {
             selected = null;
+            updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
             return;
           }
           const movingCards = tableau[fromCol].slice(fromRow);
@@ -472,6 +477,8 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             tableau[fromCol].splice(fromRow);
             tableau[destCol] = tableau[destCol].concat(movingCards);
             updateStockAndWasteMeshes();
+          } else {
+            updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
         } else if (selected.type === 'waste') {
           const card = waste[waste.length - 1];
@@ -479,6 +486,8 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             waste.pop();
             tableau[destCol].push(card);
             updateStockAndWasteMeshes();
+          } else {
+            updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
         }
         selected = null;
@@ -509,6 +518,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
       else {
         // それ以外クリックで選択解除
         selected = null;
+        updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
       }
     }
   } else {
