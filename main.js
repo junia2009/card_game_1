@@ -32,11 +32,13 @@ function showHighlights(selected) {
           z = startZ;
           y = 0.03;
         }
-        const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.5 });
+        // 枠を大きく・手前に・不透明に
+        const geo = new THREE.BoxGeometry(1.2, 0.05, 1.7);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 1.0 });
         mat.depthTest = false;
         const mesh = new THREE.Mesh(geo, mat);
         mesh.renderOrder = 9999;
+        mesh.position.y = y + 0.15; // 通常より高く
         mesh.position.x = startX + col * 1.3;
         mesh.position.z = z;
         mesh.position.y = y + 0.01;
@@ -61,11 +63,13 @@ function showHighlights(selected) {
       if (selected.type === 'tableau') card = tableau[selected.col][selected.row];
       if (selected.type === 'waste') card = waste[waste.length - 1];
       if (card && canMoveToFoundation(card, foundations[i])) {
-        const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.5 });
+        // 枠を大きく・手前に・不透明に
+        const geo = new THREE.BoxGeometry(1.2, 0.05, 1.7);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 1.0 });
         mat.depthTest = false;
         const mesh = new THREE.Mesh(geo, mat);
         mesh.renderOrder = 9999;
+        mesh.position.y = 0.21; // 通常より高く
         mesh.position.x = goalCenterX + goalOffset + i * goalSpacing;
         mesh.position.z = goalZ;
         mesh.position.y = 0.06;
