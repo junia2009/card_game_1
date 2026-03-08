@@ -35,7 +35,11 @@ function showHighlights(selected) {
         highlightMeshes.push(mesh);
       }
     }
-    // 組札
+    // 組札（座標計算を枠・カードと統一）
+    const goalSpacing = 1.7;
+    const goalCenterX = -tableWidth / 2 + tableWidth / 2;
+    const goalOffset = -goalSpacing * 1.5;
+    const goalZ = -tableHeight / 2 + tableHeight - 1.1;
     for (let i = 0; i < 4; i++) {
       let card = null;
       if (selected.type === 'tableau') card = tableau[selected.col][selected.row];
@@ -44,8 +48,8 @@ function showHighlights(selected) {
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
         const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.25 });
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.x = startX + i * 1.7;
-        mesh.position.z = startZ + tableHeight - 1.7;
+        mesh.position.x = goalCenterX + goalOffset + i * goalSpacing;
+        mesh.position.z = goalZ;
         mesh.position.y = 0.06;
         mesh.userData = { highlightFoundation: true, foundationIndex: i };
         scene.add(mesh);
