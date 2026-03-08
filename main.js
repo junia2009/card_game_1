@@ -344,7 +344,6 @@ updateStockAndWasteMeshes();
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
   clearHighlights();
-  clearHighlights();
   const rect = renderer.domElement.getBoundingClientRect();
   const mouse = {
     x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -352,7 +351,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   };
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(cardMeshes.concat(foundationMeshes), true);
+  const intersects = raycaster.intersectObjects(cardMeshes.concat(foundationMeshes, highlightMeshes), true);
   if (intersects.length > 0) {
     let obj = intersects[0].object;
     while (obj && !obj.userData && obj.parent) obj = obj.parent;
