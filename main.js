@@ -270,7 +270,7 @@ for (let i = 0; i < 4; i++) {
   mesh.position.x = goalCenterX + goalOffset + i * goalSpacing;
   mesh.position.z = goalZ;
   mesh.position.y = 0.03;
-  mesh.userData = { foundation: true, index: i };
+  mesh.userData = { foundation: true, foundationIndex: i };
   scene.add(mesh);
   foundationMeshes.push(mesh);
 }
@@ -403,21 +403,26 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
     } else {
       // 2. 移動先クリック
       clearHighlights();
-      // 組札枠
-      if (mesh.userData && mesh.userData.foundation) {
-        const fIdx = mesh.userData.index;
-        let card = null;
+      // 組札枠・ハイライト枠（foundationIndexで統一）
+      if (mesh.userData && (mesh.userData.foundation || mesh.userData.highlightFoundation)) {
+        const fIdx = mesh.userData.foundationIndex;
         if (selected.type === 'tableau') {
-          card = tableau[selected.col][selected.row];
+          const fromCol = selected.col;
+          const fromRow = selected.row;
+          const movingCards = tableau[fromCol].slice(fromRow);
+          const topCard = movingCards[0];
+          if (canMoveToFoundation(topCard, foundations[fIdx])) {
+            tableau[fromCol].splice(fromRow);
+            foundations[fIdx].push(topCard);
+            updateStockAndWasteMeshes();
+          }
         } else if (selected.type === 'waste') {
-          card = waste[waste.length - 1];
-        }
-        if (card && canMoveToFoundation(card, foundations[fIdx])) {
-          // 移動
-          if (selected.type === 'tableau') tableau[selected.col].pop();
-          if (selected.type === 'waste') waste.pop();
-          foundations[fIdx].push(card);
-          updateStockAndWasteMeshes();
+          const card = waste[waste.length - 1];
+          if (canMoveToFoundation(card, foundations[fIdx])) {
+            waste.pop();
+            foundations[fIdx].push(card);
+            updateStockAndWasteMeshes();
+          }
         }
         selected = null;
       }
