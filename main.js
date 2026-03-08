@@ -21,14 +21,22 @@ function showHighlights(selected) {
       if (card && canMoveToTableau(card, col)) {
         // 一番上のカードの上に枠 or 空列枠
         let y = 0.03;
-        for (let row = 0; row < tableau[col].length; row++) {
-          y += tableau[col][row].faceUp ? 0.22 : 0.10;
+        let z = startZ;
+        if (tableau[col].length > 0) {
+          for (let row = 0; row < tableau[col].length; row++) {
+            y += tableau[col][row].faceUp ? 0.22 : 0.10;
+          }
+          z = startZ + tableau[col].length * 0.18;
+        } else {
+          // 空列の場合は最初のカードと同じ位置に枠を出す
+          z = startZ;
+          y = 0.03;
         }
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
         const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.x = startX + col * 1.3;
-        mesh.position.z = startZ + tableau[col].length * 0.18;
+        mesh.position.z = z;
         mesh.position.y = y + 0.01;
         mesh.userData = { highlightTableau: true, col };
         scene.add(mesh);
