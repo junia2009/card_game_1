@@ -497,21 +497,28 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
           }
           const movingCards = tableau[fromCol].slice(fromRow);
           const topCard = movingCards[0];
-          if (canMoveToTableau(topCard, destCol)) {
+          const canMove = canMoveToTableau(topCard, destCol);
+          console.log('canMoveToTableau', topCard, destCol, '=>', canMove);
+          if (canMove) {
             tableau[fromCol].splice(fromRow);
             tableau[destCol] = tableau[destCol].concat(movingCards);
+            console.log('tableau after move:', JSON.parse(JSON.stringify(tableau)));
             updateStockAndWasteMeshes();
           } else {
+            console.log('tableau (no move):', JSON.parse(JSON.stringify(tableau)));
             updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
         } else if (selected.type === 'waste') {
           const card = waste[waste.length - 1];
-          if (canMoveToTableau(card, destCol)) {
+          const canMoveWaste = canMoveToTableau(card, destCol);
+          console.log('canMoveToTableau', card, destCol, '=>', canMoveWaste);
+          if (canMoveWaste) {
             waste.pop();
             tableau[destCol].push(card);
+            console.log('tableau after move:', JSON.parse(JSON.stringify(tableau)));
             updateStockAndWasteMeshes();
           } else {
-            console.log('canMoveToTableau', card, destCol); // 追加: wasteから移動時（ハイライト枠クリック）
+            console.log('tableau (no move):', JSON.parse(JSON.stringify(tableau)));
             updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
         }
