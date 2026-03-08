@@ -309,11 +309,11 @@ function updateStockAndWasteMeshes() {
     cardMeshes.push(mesh);
   }
   // 組札の一番上
-  // ゴール（組札）はテーブル上端中央基準で配置
-  const goalZ = startZ + tableHeight - 1.1;
+  // ゴール（組札）はテーブル上端中央基準で配置（他の箇所と式を統一）
   const goalSpacing = 1.7;
-  const goalCenterX = startX + tableWidth / 2;
-  const goalOffset = -goalSpacing * 1.5; // 4つ並べるので中央から左右に2つずつ
+  const goalCenterX = -tableWidth / 2 + tableWidth / 2;
+  const goalOffset = -goalSpacing * 1.5;
+  const goalZ = -tableHeight / 2 + tableHeight - 1.1;
   for (let i = 0; i < 4; i++) {
     if (foundations[i].length > 0) {
       const card = foundations[i][foundations[i].length - 1];
