@@ -33,8 +33,10 @@ function showHighlights(selected) {
           y = 0.03;
         }
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.25 });
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.5 });
+        mat.depthTest = false;
         const mesh = new THREE.Mesh(geo, mat);
+        mesh.renderOrder = 9999;
         mesh.position.x = startX + col * 1.3;
         mesh.position.z = z;
         mesh.position.y = y + 0.01;
@@ -60,8 +62,10 @@ function showHighlights(selected) {
       if (selected.type === 'waste') card = waste[waste.length - 1];
       if (card && canMoveToFoundation(card, foundations[i])) {
         const geo = new THREE.BoxGeometry(1.05, 0.025, 1.45);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.25 });
+        const mat = new THREE.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: 0.5 });
+        mat.depthTest = false;
         const mesh = new THREE.Mesh(geo, mat);
+        mesh.renderOrder = 9999;
         mesh.position.x = goalCenterX + goalOffset + i * goalSpacing;
         mesh.position.z = goalZ;
         mesh.position.y = 0.06;
