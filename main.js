@@ -364,6 +364,8 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(cardMeshes.concat(foundationMeshes, highlightMeshes), true);
+  // ★ デバッグ: クリック時にヒットしたオブジェクトのuserDataを全て出力
+  console.log('Raycaster intersects:', intersects.map(i => i.object.userData));
   // ★ ハイライト枠を優先して採用
   const pick = intersects.find(it => it.object?.userData?.highlightTableau || it.object?.userData?.highlightFoundation)
             || intersects.find(it => it.object?.userData?.foundation)
