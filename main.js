@@ -39,6 +39,12 @@ function showHighlights(selected) {
         mesh.position.z = z;
         mesh.position.y = y + 0.01;
         mesh.userData = { highlightTableau: true, col };
+        // すべての子にもuserDataを付与
+        if (mesh.children) {
+          for (const child of mesh.children) {
+            child.userData = mesh.userData;
+          }
+        }
         scene.add(mesh);
         highlightMeshes.push(mesh);
       }
@@ -60,6 +66,12 @@ function showHighlights(selected) {
         mesh.position.z = goalZ;
         mesh.position.y = 0.06;
         mesh.userData = { highlightFoundation: true, foundationIndex: i };
+        // すべての子にもuserDataを付与
+        if (mesh.children) {
+          for (const child of mesh.children) {
+            child.userData = mesh.userData;
+          }
+        }
         scene.add(mesh);
         highlightMeshes.push(mesh);
       }
