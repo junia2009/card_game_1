@@ -463,6 +463,10 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         if (selected.type === 'tableau') {
           const fromCol = selected.col;
           const fromRow = selected.row;
+          if (fromCol === destCol) {
+            selected = null;
+            return;
+          }
           const movingCards = tableau[fromCol].slice(fromRow);
           const topCard = movingCards[0];
           if (canMoveToTableau(topCard, destCol)) {
