@@ -1,4 +1,5 @@
 #guide-box {
+  display: none;
   position: fixed;
   top: 12px;
   left: 16px;
