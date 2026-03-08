@@ -511,12 +511,9 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             tableau[destCol].push(card);
             updateStockAndWasteMeshes();
           } else {
-          else {
-            console.log('canMoveToTableau', topCard, destCol); // 追加: tableauから移動時
-          }
+            console.log('canMoveToTableau', card, destCol); // 追加: wasteから移動時（ハイライト枠クリック）
             updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
-            console.log('canMoveToTableau', card, destCol); // 追加: wasteから移動時（ハイライト枠クリック）
         }
         selected = null;
       }
