@@ -475,6 +475,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
           }
         } else if (selected.type === 'waste') {
           const card = waste[waste.length - 1];
+            console.log('canMoveToTableau', card, destCol); // 追加: wasteから移動時
           if (canMoveToTableau(card, destCol)) {
             waste.pop();
             tableau[destCol].push(card);
@@ -510,8 +511,12 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             tableau[destCol].push(card);
             updateStockAndWasteMeshes();
           } else {
+          else {
+            console.log('canMoveToTableau', topCard, destCol); // 追加: tableauから移動時
+          }
             updateStockAndWasteMeshes(); // 失敗時も見た目を戻す
           }
+            console.log('canMoveToTableau', card, destCol); // 追加: wasteから移動時（ハイライト枠クリック）
         }
         selected = null;
       }
