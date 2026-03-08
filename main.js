@@ -254,12 +254,17 @@ const foundations = [[], [], [], []];
 
 // ゴール枠の表示
 const foundationMeshes = [];
+// ゴール枠の表示（カード配置と同じ座標計算に統一）
+const goalSpacing = 1.7;
+const goalCenterX = -tableWidth / 2 + tableWidth / 2; // テーブル中心
+const goalOffset = -goalSpacing * 1.5; // 4つ並べるので中央から左右に2つずつ
+const goalZ = -tableHeight / 2 + tableHeight - 1.1;
 for (let i = 0; i < 4; i++) {
   const geo = new THREE.BoxGeometry(1, 0.021, 1.4);
   const mat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.25 });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.x = -6 + i * 1.7;
-  mesh.position.z = 2.2;
+  mesh.position.x = goalCenterX + goalOffset + i * goalSpacing;
+  mesh.position.z = goalZ;
   mesh.position.y = 0.03;
   mesh.userData = { foundation: true, index: i };
   scene.add(mesh);
@@ -343,14 +348,16 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 
     // 1. カード選択（場札・捨て札・組札）
     if (!selected) {
-      // 場札の表向きカード
+      // 場札の表向きカード（途中のカードも選択可）
       if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
         const { col, row } = mesh.userData;
-        if (tableau[col][row].faceUp && row === tableau[col].length - 1) {
+        if (tableau[col][row].faceUp) {
           selected = { type: 'tableau', col, row };
-          // 選択中カードを少し上に浮かせる
-          const mesh = cardMeshes.find(m => m.userData && m.userData.col === col && m.userData.row === row);
-          if (mesh) mesh.position.y += 0.18;
+          // 選択中カード群を少し上に浮かせる
+          for (let r = row; r < tableau[col].length; r++) {
+            const mesh = cardMeshes.find(m => m.userData && m.userData.col === col && m.userData.row === r);
+            if (mesh) mesh.position.y += 0.18;
+          }
           showHighlights(selected);
         }
         // 裏向きカードをめくる
@@ -413,34 +420,46 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
       // 場札列（カード上）
       else if (mesh.userData && mesh.userData.col !== undefined && mesh.userData.row !== undefined) {
         const destCol = mesh.userData.col;
-        let card = null;
         if (selected.type === 'tableau') {
-          card = tableau[selected.col][selected.row];
+          const fromCol = selected.col;
+          const fromRow = selected.row;
+          const movingCards = tableau[fromCol].slice(fromRow);
+          const topCard = movingCards[0];
+          if (canMoveToTableau(topCard, destCol)) {
+            tableau[fromCol].splice(fromRow);
+            tableau[destCol] = tableau[destCol].concat(movingCards);
+            updateStockAndWasteMeshes();
+          }
         } else if (selected.type === 'waste') {
-          card = waste[waste.length - 1];
-        }
-        if (card && canMoveToTableau(card, destCol)) {
-          if (selected.type === 'tableau') tableau[selected.col].pop();
-          if (selected.type === 'waste') waste.pop();
-          tableau[destCol].push(card);
-          updateStockAndWasteMeshes();
+          const card = waste[waste.length - 1];
+          if (canMoveToTableau(card, destCol)) {
+            waste.pop();
+            tableau[destCol].push(card);
+            updateStockAndWasteMeshes();
+          }
         }
         selected = null;
       }
       // 空の場札列枠
       else if (mesh.userData && mesh.userData.highlightTableau) {
         const destCol = mesh.userData.col;
-        let card = null;
         if (selected.type === 'tableau') {
-          card = tableau[selected.col][selected.row];
+          const fromCol = selected.col;
+          const fromRow = selected.row;
+          const movingCards = tableau[fromCol].slice(fromRow);
+          const topCard = movingCards[0];
+          if (canMoveToTableau(topCard, destCol)) {
+            tableau[fromCol].splice(fromRow);
+            tableau[destCol] = tableau[destCol].concat(movingCards);
+            updateStockAndWasteMeshes();
+          }
         } else if (selected.type === 'waste') {
-          card = waste[waste.length - 1];
-        }
-        if (card && canMoveToTableau(card, destCol)) {
-          if (selected.type === 'tableau') tableau[selected.col].pop();
-          if (selected.type === 'waste') waste.pop();
-          tableau[destCol].push(card);
-          updateStockAndWasteMeshes();
+          const card = waste[waste.length - 1];
+          if (canMoveToTableau(card, destCol)) {
+            waste.pop();
+            tableau[destCol].push(card);
+            updateStockAndWasteMeshes();
+          }
         }
         selected = null;
       }
