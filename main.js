@@ -470,17 +470,23 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
       // 組札枠（ハイライト）
       else if (mesh.userData && mesh.userData.highlightFoundation) {
         const fIdx = mesh.userData.foundationIndex;
-        let card = null;
         if (selected.type === 'tableau') {
-          card = tableau[selected.col][selected.row];
+          const fromCol = selected.col;
+          const fromRow = selected.row;
+          const movingCards = tableau[fromCol].slice(fromRow);
+          const topCard = movingCards[0];
+          if (canMoveToFoundation(topCard, foundations[fIdx])) {
+            tableau[fromCol].splice(fromRow);
+            foundations[fIdx].push(topCard);
+            updateStockAndWasteMeshes();
+          }
         } else if (selected.type === 'waste') {
-          card = waste[waste.length - 1];
-        }
-        if (card && canMoveToFoundation(card, foundations[fIdx])) {
-          if (selected.type === 'tableau') tableau[selected.col].pop();
-          if (selected.type === 'waste') waste.pop();
-          foundations[fIdx].push(card);
-          updateStockAndWasteMeshes();
+          const card = waste[waste.length - 1];
+          if (canMoveToFoundation(card, foundations[fIdx])) {
+            waste.pop();
+            foundations[fIdx].push(card);
+            updateStockAndWasteMeshes();
+          }
         }
         selected = null;
       }
