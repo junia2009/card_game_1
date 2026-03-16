@@ -1,5 +1,5 @@
 # バージョン管理用ファイル
 
-version=1.0.1
+version=1.1.0
 
 - canMoveToTableau判定のデバッグ用console.log追加
