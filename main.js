@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.2.3
+//  3D Solitaire (Klondike)  –  main.js  v2.2.4
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -58,7 +58,7 @@ function fitCamera() {
     camera.up.set(0, 1, 0);
     camera.fov = 45;
     camera.position.set(0, 14, 2);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(0, 0, -0.8);
   }
   camera.updateProjectionMatrix();
 }
@@ -392,10 +392,10 @@ let _tableRimMat  = null;
   }
 
   const mysticalShipDefs = [
-    { type:'ring',    hex:0x00eeff, y:2.2, cz: -7.0, sp:0.80, ph:0.0 },
-    { type:'crystal', hex:0xcc44ff, y:1.6, cz: -8.5, sp:1.10, ph:1.7 },
-    { type:'orb',     hex:0xffcc00, y:2.6, cz: -6.0, sp:0.65, ph:3.3 },
-    { type:'diamond', hex:0x44aaff, y:1.9, cz: -9.5, sp:1.35, ph:5.0 },
+    { type:'ring',    hex:0x00eeff, y:2.2, cz: -4.5, sp:0.80, ph:0.0 },
+    { type:'crystal', hex:0xcc44ff, y:1.6, cz: -5.5, sp:1.10, ph:1.7 },
+    { type:'orb',     hex:0xffcc00, y:2.6, cz: -4.0, sp:0.65, ph:3.3 },
+    { type:'diamond', hex:0x44aaff, y:1.9, cz: -6.0, sp:1.35, ph:5.0 },
   ];
   const mysticalShips = mysticalShipDefs.map(d => {
     const group = makeMysticalShip(d.type, d.hex);
