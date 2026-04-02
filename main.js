@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.1.0
+//  3D Solitaire (Klondike)  –  main.js  v2.1.1
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -45,12 +45,15 @@ function fitCamera() {
   camera.aspect = window.innerWidth / window.innerHeight;
 
   if (isPortrait) {
-    // ポートレート: camera.up で視点を-90°回転
-    // (+X軍 = 画面上方) → CSS変形不要 → 座標変換バグなし
+    // ポートレート: camera.up で視点を90°回転（X軸 = 画面上方）
     camera.up.set(1, 0, 0);
-    camera.fov = 58;
-    camera.position.set(0, 12, 2);
-    camera.lookAt(0, 0, 0.5);
+    const aspect = window.innerWidth / window.innerHeight;
+    const camY   = 14;
+    // ゲームコンテンツのZ範囲: 組札Z=-3.4 〜 tableau最大+4.0, 中心0.3, 余白込み半幅=4.2
+    // アスペクト比に応じてFOVを動的計算 → どのデバイスでもぴったり収まる
+    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(4.2 / (aspect * camY)));
+    camera.position.set(0, camY, 1.5);
+    camera.lookAt(0, 0, 0.3);
   } else {
     camera.up.set(0, 1, 0);
     camera.fov = 45;
