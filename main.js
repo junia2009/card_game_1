@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.0.3
+//  3D Solitaire (Klondike)  –  main.js  v2.0.4
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -852,11 +852,24 @@ class SolitaireGame {
       if (this.selected) { this.selected = null; this.clearHighlights(); this._render(); }
     });
 
-    // タッチ移動検知（ドラッグ誤タップ防止）
-    this._touchMoved = false;
-    renderer.domElement.addEventListener('pointerdown', () => { this._touchMoved = false; });
+    // タッチ移動検知（ドラッグ誤タップ防止 - 10px閾値）
+    // iOS では普通のタップでも数px の pointermove が発生するため閾値必須
+    this._touchMoved  = false;
+    this._touchStartX = 0;
+    this._touchStartY = 0;
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      this._touchMoved  = false;
+      this._touchStartX = e.clientX;
+      this._touchStartY = e.clientY;
+      // iOS Safari がタップをスクロールに変換するのを防ぐ
+      if (e.pointerType === 'touch') e.preventDefault();
+    }, { passive: false });
     renderer.domElement.addEventListener('pointermove', (e) => {
-      if (e.pointerType === 'touch') this._touchMoved = true;
+      if (e.pointerType === 'touch') {
+        const dx = e.clientX - this._touchStartX;
+        const dy = e.clientY - this._touchStartY;
+        if (Math.hypot(dx, dy) > 10) this._touchMoved = true;
+      }
     });
 
     // UI ボタン
