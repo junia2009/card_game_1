@@ -34,7 +34,7 @@ body {
   align-items: flex-end;
 }
 
-/* ポートレート: 上部横並びバーに切り替え */
+/* ポートレート: canvas は JS で回転済みのため UI のみ調整 */
 @media (orientation: portrait) {
   #ui-overlay {
     flex-direction: row;
@@ -46,14 +46,9 @@ body {
     padding-right: max(8px, env(safe-area-inset-right));
     gap: 6px;
   }
-  .ui-btn {
-    padding: 5px 12px;
-    font-size: 0.85em;
-  }
-  #score-display, #moves-display {
-    padding: 4px 10px;
-    font-size: 0.82em;
-  }
+  .ui-btn          { padding: 5px 12px; font-size: 0.85em; }
+  #score-display,
+  #moves-display   { padding: 4px 10px; font-size: 0.82em; }
 }
 
 .ui-btn {

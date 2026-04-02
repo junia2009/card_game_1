@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.0.1
+//  3D Solitaire (Klondike)  –  main.js  v2.0.2
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -30,23 +30,32 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
-// アスペクト比に応じてカメラを調整
-// ポートレート時はテーブル全幅が収まるよう高度とFOVを引き上げる
+// アスペクト比に応じてカメラとレンダラーを調整
+// ポートレート時は canvas を -90° 回転してランドスケープ画面を縦督面に全画面表示
 function fitCamera() {
-  const aspect = window.innerWidth / window.innerHeight;
-  camera.aspect = aspect;
-  if (aspect < 1) {
-    // ポートレート: カメラを高く、FOVを広く
-    camera.position.set(0, 20, 2.5);
-    camera.fov = 78;
+  const isPortrait = window.innerHeight > window.innerWidth;
+  if (isPortrait) {
+    // ランドスケープ対応で描画→CSS-90°で縦に表示
+    renderer.setSize(window.innerHeight, window.innerWidth);
+    camera.aspect = window.innerHeight / window.innerWidth;
+    const dx = (window.innerWidth  - window.innerHeight) / 2;
+    const dy = (window.innerHeight - window.innerWidth)  / 2;
+    renderer.domElement.style.position = 'fixed';
+    renderer.domElement.style.left     = dx + 'px';
+    renderer.domElement.style.top      = dy + 'px';
+    renderer.domElement.style.transform = 'rotate(-90deg)';
+    renderer.domElement.style.transformOrigin = '50% 50%';
   } else {
-    // ランドスケープ: 通常設定
-    camera.position.set(0, 14, 2);
-    camera.fov = 45;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    renderer.domElement.style.left      = '0';
+    renderer.domElement.style.top       = '0';
+    renderer.domElement.style.transform = '';
   }
+  camera.position.set(0, 14, 2);
+  camera.fov = 45;
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 fitCamera();
 
@@ -796,11 +805,18 @@ class SolitaireGame {
 
     // pointerup = マウスクリック・タップ両対応（iOS 300ms遅延なし）
     renderer.domElement.addEventListener('pointerup', (e) => {
-      // ドラッグ後の誤タップを除外（5px以上動いた場合は無視）
+      // ドラッグ後の誤タップを除外
       if (e.pointerType === 'touch' && this._touchMoved) return;
 
-      mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      // ポートレート時は canvas が -90° 回転しているので座標を変換
+      if (window.innerHeight > window.innerWidth) {
+        // -90°CCW回転の逆変換: canvas_x = innerHeight-clientY, canvas_y = clientX
+        mouse.x = ((window.innerHeight - e.clientY) / window.innerHeight) * 2 - 1;
+        mouse.y = -(e.clientX / window.innerWidth) * 2 + 1;
+      } else {
+        mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      }
       raycaster.setFromCamera(mouse, camera);
 
       // カードに当たり判定
