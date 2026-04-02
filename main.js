@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.0.2
+//  3D Solitaire (Klondike)  –  main.js  v2.0.3
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -45,16 +45,20 @@ function fitCamera() {
     renderer.domElement.style.top      = dy + 'px';
     renderer.domElement.style.transform = 'rotate(-90deg)';
     renderer.domElement.style.transformOrigin = '50% 50%';
+    // ポートレート: テーブルが画面を埋めるようカメラを近づける
+    camera.position.set(0, 10, 1.5);
+    camera.fov = 45;
+    camera.lookAt(0, 0, 0.5);
   } else {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     renderer.domElement.style.left      = '0';
     renderer.domElement.style.top       = '0';
     renderer.domElement.style.transform = '';
+    camera.position.set(0, 14, 2);
+    camera.fov = 45;
+    camera.lookAt(0, 0, 0);
   }
-  camera.position.set(0, 14, 2);
-  camera.fov = 45;
-  camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
 }
 fitCamera();
