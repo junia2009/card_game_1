@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.2.2
+//  3D Solitaire (Klondike)  –  main.js  v2.2.3
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -392,10 +392,10 @@ let _tableRimMat  = null;
   }
 
   const mysticalShipDefs = [
-    { type:'ring',    hex:0x00eeff, y:7.5, sp:0.80, ph:0.0 },
-    { type:'crystal', hex:0xcc44ff, y:5.5, sp:1.10, ph:1.7 },
-    { type:'orb',     hex:0xffcc00, y:8.2, sp:0.65, ph:3.3 },
-    { type:'diamond', hex:0x44aaff, y:6.2, sp:1.35, ph:5.0 },
+    { type:'ring',    hex:0x00eeff, y:2.2, cz: -7.0, sp:0.80, ph:0.0 },
+    { type:'crystal', hex:0xcc44ff, y:1.6, cz: -8.5, sp:1.10, ph:1.7 },
+    { type:'orb',     hex:0xffcc00, y:2.6, cz: -6.0, sp:0.65, ph:3.3 },
+    { type:'diamond', hex:0x44aaff, y:1.9, cz: -9.5, sp:1.35, ph:5.0 },
   ];
   const mysticalShips = mysticalShipDefs.map(d => {
     const group = makeMysticalShip(d.type, d.hex);
@@ -444,9 +444,11 @@ let _tableRimMat  = null;
     // Lissajous 軌跡: x=5.2*sin(t), z=2.8*sin(0.7t+1.1) → 視野内を8の字で周回
     for (const ship of mysticalShips) {
       const t = elapsed * ship.sp + ship.ph;
-      const x = 5.2 * Math.sin(t);
-      const z = 2.8 * Math.sin(t * 0.7 + 1.1);
-      const y = ship.y + 0.9 * Math.sin(t * 1.3);
+      // テーブル奥側（負Z）をゆっくり左右に流れる
+      // z は常に ship.cz より手前に来ないよう ±1.5 のみ振る
+      const x = 5.0 * Math.sin(t * 0.6);
+      const z = ship.cz + 1.5 * Math.sin(t * 0.4 + 1.1);
+      const y = ship.y + 0.5 * Math.sin(t * 1.3);
       ship.group.position.set(x, y, z);
       ship.light.position.set(x, y, z);
       ship.light.intensity = 0.7 + 0.4 * Math.sin(elapsed * 4 + ship.ph);
