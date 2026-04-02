@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.0.4
+//  3D Solitaire (Klondike)  –  main.js  v2.0.5
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -34,29 +34,27 @@ container.appendChild(renderer.domElement);
 // ポートレート時は canvas を -90° 回転してランドスケープ画面を縦督面に全画面表示
 function fitCamera() {
   const isPortrait = window.innerHeight > window.innerWidth;
+
+  // canvasはCSS変形なしで常に画面いっぱい
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.domElement.style.transform       = '';
+  renderer.domElement.style.left            = '';
+  renderer.domElement.style.top             = '';
+  renderer.domElement.style.position        = '';
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+
   if (isPortrait) {
-    // ランドスケープ対応で描画→CSS-90°で縦に表示
-    renderer.setSize(window.innerHeight, window.innerWidth);
-    camera.aspect = window.innerHeight / window.innerWidth;
-    const dx = (window.innerWidth  - window.innerHeight) / 2;
-    const dy = (window.innerHeight - window.innerWidth)  / 2;
-    renderer.domElement.style.position = 'fixed';
-    renderer.domElement.style.left     = dx + 'px';
-    renderer.domElement.style.top      = dy + 'px';
-    renderer.domElement.style.transform = 'rotate(-90deg)';
-    renderer.domElement.style.transformOrigin = '50% 50%';
-    // ポートレート: テーブルが画面を埋めるようカメラを近づける
-    camera.position.set(0, 10, 1.5);
-    camera.fov = 45;
+    // ポートレート: camera.up で視点を-90°回転
+    // (+X軍 = 画面上方) → CSS変形不要 → 座標変換バグなし
+    camera.up.set(1, 0, 0);
+    camera.fov = 58;
+    camera.position.set(0, 12, 2);
     camera.lookAt(0, 0, 0.5);
   } else {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    renderer.domElement.style.left      = '0';
-    renderer.domElement.style.top       = '0';
-    renderer.domElement.style.transform = '';
-    camera.position.set(0, 14, 2);
+    camera.up.set(0, 1, 0);
     camera.fov = 45;
+    camera.position.set(0, 14, 2);
     camera.lookAt(0, 0, 0);
   }
   camera.updateProjectionMatrix();
@@ -812,15 +810,9 @@ class SolitaireGame {
       // ドラッグ後の誤タップを除外
       if (e.pointerType === 'touch' && this._touchMoved) return;
 
-      // ポートレート時は canvas が -90° 回転しているので座標を変換
-      if (window.innerHeight > window.innerWidth) {
-        // -90°CCW回転の逆変換: canvas_x = innerHeight-clientY, canvas_y = clientX
-        mouse.x = ((window.innerHeight - e.clientY) / window.innerHeight) * 2 - 1;
-        mouse.y = -(e.clientX / window.innerWidth) * 2 + 1;
-      } else {
-        mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      }
+      // camera.upで視点回転済むため、座標変換は不要（常に標準NDC）
+      mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
 
       // カードに当たり判定
