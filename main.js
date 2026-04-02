@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.1.1
+//  3D Solitaire (Klondike)  –  main.js  v2.1.2
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -590,6 +590,9 @@ class SolitaireGame {
 
   // ── データ初期化 ──────────────────────────────────────────
   _init() {
+    this.score   = 0;
+    this.moves   = 0;
+    this.history = [];
     const suits = ['spade','heart','diamond','club'];
     let cards = [];
     for (const s of suits)
