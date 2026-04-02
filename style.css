@@ -1,45 +1,129 @@
-#guide-box {
-  display: none;
-  position: fixed;
-  top: 12px;
-  left: 16px;
-  background: rgba(30, 30, 40, 0.85);
-  color: #fff;
-  padding: 10px 18px 10px 14px;
-  border-radius: 10px;
-  font-size: 1.05em;
-  font-family: 'Segoe UI', 'Meiryo', sans-serif;
-  z-index: 20;
-  box-shadow: 0 2px 8px #0008;
-  max-width: 320px;
-  line-height: 1.5;
-}
-#version-label {
-  position: fixed;
-  right: 16px;
-  bottom: 12px;
-  color: #fff;
-  background: rgba(30, 30, 40, 0.7);
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 1.1em;
-  font-family: 'Segoe UI', 'Meiryo', sans-serif;
-  z-index: 10;
-  letter-spacing: 0.05em;
-}
+/* ===== Base ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #2e3548 0%, #1a1f2b 100%);
-  min-height: 100vh;
+  margin: 0; padding: 0;
+  background: #1a1f2b;
   font-family: 'Segoe UI', 'Meiryo', sans-serif;
+  overflow: hidden;
+  user-select: none;
+  /* タッチ操作はcanvasで管理するため無効化 */
+  touch-action: none;
+  /* iOS safe area 対応 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 #three-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
 }
+
+/* ===== UI オーバーレイ ===== */
+#ui-overlay {
+  position: fixed;
+  /* ノッチ・Dynamic Island を避ける */
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+  align-items: flex-end;
+}
+
+.ui-btn {
+  background: rgba(30, 40, 60, 0.88);
+  color: #e8f0ff;
+  border: 1px solid rgba(120,160,255,0.35);
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.ui-btn:hover  { background: rgba(60,100,200,0.75); transform: scale(1.04); }
+.ui-btn:active { transform: scale(0.97); }
+
+#score-display, #moves-display {
+  background: rgba(20,28,50,0.80);
+  color: #a8c4ff;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 0.9em;
+  border: 1px solid rgba(100,140,255,0.2);
+}
+
+/* ===== ガイドボックス ===== */
+#guide-box {
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 28, 50, 0.96);
+  color: #cde;
+  padding: 24px 28px;
+  border-radius: 14px;
+  font-size: 1em;
+  z-index: 30;
+  box-shadow: 0 4px 32px #0009;
+  max-width: 340px;
+  border: 1px solid rgba(120,160,255,0.3);
+  line-height: 1.6;
+}
+#guide-box b { font-size: 1.1em; color: #fff; }
+#guide-box ul { margin: 10px 0 0 18px; padding: 0; }
+#guide-box.visible { display: block; }
+
+#btn-guide-open {
+  position: fixed;
+  bottom: max(50px, calc(env(safe-area-inset-bottom) + 50px));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 20;
+}
+
+/* ===== クリア画面 ===== */
+#clear-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  backdrop-filter: blur(4px);
+}
+#clear-box {
+  background: linear-gradient(135deg, #1e2f50, #0d1a32);
+  border: 2px solid rgba(120,180,255,0.4);
+  border-radius: 20px;
+  padding: 48px 56px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 8px 48px #0008;
+}
+#clear-title {
+  font-size: 2.8em;
+  font-weight: bold;
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+#clear-score {
+  font-size: 1.2em;
+  color: #a8d8ff;
+  margin-bottom: 28px;
+}
+
+/* ===== バージョンラベル ===== */
+#version-label {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  color: rgba(200,220,255,0.55);
+  font-size: 0.8em;
+  z-index: 10;
+  pointer-events: none;
+}
+

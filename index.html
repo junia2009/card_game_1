@@ -2,24 +2,73 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- viewport-fit=cover でノッチ・Dynamic Island 対応 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>3D Solitaire - Klondike</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS ホーム画面追加 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Solitaire">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Android テーマカラー -->
+  <meta name="theme-color" content="#1a2035">
+
+  <!-- favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="three-container"></div>
-  <div id="guide-box">
-    <b>ソリティア（クロンダイク）遊び方</b><br>
-    <ul style="margin:4px 0 0 16px;padding:0;font-size:0.95em;">
-      <li>カードをクリックで選択→移動先をクリック</li>
-      <li>カードは赤黒交互・数字が1つ小さい列にのみ移動可</li>
-      <li>エースから順に同じマークで組札（上部）に積む</li>
-      <li>山札クリックで1枚めくり、捨て札からも移動可</li>
-      <li>全カードを組札に移せばクリア！</li>
-    </ul>
+
+  <!-- UIオーバーレイ -->
+  <div id="ui-overlay">
+    <div id="btn-new-game" class="ui-btn">新しいゲーム</div>
+    <div id="btn-hint"     class="ui-btn">ヒント</div>
+    <div id="btn-undo"     class="ui-btn">元に戻す</div>
+    <div id="score-display">スコア: <span id="score-value">0</span></div>
+    <div id="moves-display">手数: <span id="moves-value">0</span></div>
   </div>
-  <div id="version-label">Game:1.1.1</div>
+
+  <!-- ガイド -->
+  <div id="guide-box">
+    <b>ソリティア（クロンダイク）遊び方</b>
+    <ul>
+      <li>カードをクリックで選択 → 移動先をクリック</li>
+      <li>カードは赤黒交互・数字が1つ小さい列にのみ移動可</li>
+      <li>エースから順に同じマークで組札（奥）に積む</li>
+      <li>山札クリックで1枚めくり、捨て札からも移動可</li>
+      <li>全52枚を組札に移せばクリア！</li>
+    </ul>
+    <div id="btn-guide-close" class="ui-btn" style="margin-top:6px;">閉じる</div>
+  </div>
+  <div id="btn-guide-open" class="ui-btn">？ 遊び方</div>
+
+  <!-- クリア画面 -->
+  <div id="clear-overlay" style="display:none;">
+    <div id="clear-box">
+      <div id="clear-title">🎉 クリア！</div>
+      <div id="clear-score"></div>
+      <div id="btn-clear-new" class="ui-btn">もう一度プレイ</div>
+    </div>
+  </div>
+
+  <div id="version-label">v2.0.0</div>
+
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="main.js"></script>
+  <script>
+    // Service Worker 登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
