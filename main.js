@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.0.5
+//  3D Solitaire (Klondike)  –  main.js  v2.1.0
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -20,7 +20,7 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 // ─── Three.js セットアップ ────────────────────────────────────
 const container = document.getElementById('three-container');
 const scene     = new THREE.Scene();
-scene.background = new THREE.Color(0x1a2035);
+scene.background = null; // 宇宙背景は別途初期化
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 
@@ -62,6 +62,238 @@ function fitCamera() {
 fitCamera();
 
 window.addEventListener('resize', fitCamera);
+
+// ─── 宇宙背景 ──────────────────────────────────────────────────
+// 最高品質の宇宙体験: 星シェーダー・天の川・星雲・銀河・流れ星・テーブルグロー
+let _updateSpace = null;
+
+(function initSpaceBackground() {
+  // 深宇宙の背景球（裏返し）
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(85, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x000308, side: THREE.BackSide })
+  ));
+
+  // ── 星シェーダー（per-vertex 色・サイズ・瞬き） ─────────────
+  const starVS = `
+    attribute float aSize;
+    attribute float aPhase;
+    attribute vec3  aColor;
+    uniform   float uTime;
+    varying   vec3  vColor;
+    varying   float vAlpha;
+    void main() {
+      float tw     = 0.6 + 0.4 * sin(uTime * 1.8 + aPhase);
+      vColor       = aColor;
+      vAlpha       = tw;
+      vec4 mv      = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = aSize * (380.0 / -mv.z) * (0.85 + 0.15 * tw);
+      gl_Position  = projectionMatrix * mv;
+    }
+  `;
+  const starFS = `
+    varying vec3  vColor;
+    varying float vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - vec2(0.5));
+      if (d > 0.5) discard;
+      float a = (1.0 - d * 2.0);
+      a = a * a * vAlpha;
+      gl_FragColor = vec4(vColor * (0.9 + 0.1 * vAlpha), a);
+    }
+  `;
+
+  // 恒星スペクトル色と出現分布
+  const palette  = [
+    [1.00, 1.00, 1.00], // 白
+    [0.75, 0.88, 1.00], // 青白
+    [1.00, 0.96, 0.82], // 黄白
+    [1.00, 0.75, 0.45], // オレンジ
+    [0.90, 0.75, 1.00], // 淡紫
+    [0.65, 0.92, 1.00], // 水色
+    [1.00, 0.55, 0.40], // 赤
+  ];
+  const weights = [40, 25, 15, 8, 5, 5, 2];
+  const wTotal = weights.reduce((a,b)=>a+b,0);
+  function pickColor() {
+    let r = Math.random() * wTotal;
+    for (let i=0; i<weights.length; i++) { r -= weights[i]; if (r<=0) return palette[i]; }
+    return palette[0];
+  }
+
+  const COUNT  = 6000;
+  const sPos   = new Float32Array(COUNT * 3);
+  const sSizes = new Float32Array(COUNT);
+  const sPhase = new Float32Array(COUNT);
+  const sColor = new Float32Array(COUNT * 3);
+
+  for (let i=0; i<COUNT; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r     = 70 + Math.random() * 12;
+    sPos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    sPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    sPos[i*3+2] = r * Math.cos(phi);
+    const bri   = Math.pow(Math.random(), 2);
+    sSizes[i]   = 0.5 + bri * 3.5;
+    sPhase[i]   = Math.random() * Math.PI * 2;
+    const col   = pickColor();
+    sColor[i*3]   = col[0] * (0.55 + bri * 0.45);
+    sColor[i*3+1] = col[1] * (0.55 + bri * 0.45);
+    sColor[i*3+2] = col[2] * (0.55 + bri * 0.45);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(sPos,   3));
+  starGeo.setAttribute('aSize',    new THREE.BufferAttribute(sSizes, 1));
+  starGeo.setAttribute('aPhase',   new THREE.BufferAttribute(sPhase, 1));
+  starGeo.setAttribute('aColor',   new THREE.BufferAttribute(sColor, 3));
+  const starUniforms = { uTime: { value: 0 } };
+  scene.add(new THREE.Points(starGeo, new THREE.ShaderMaterial({
+    uniforms: starUniforms, vertexShader: starVS, fragmentShader: starFS,
+    transparent: true, depthWrite: false,
+  })));
+
+  // ── 天の川（密な帯状の微小星） ──────────────────────────────
+  const MW = 3000;
+  const mwP = new Float32Array(MW * 3);
+  for (let i=0; i<MW; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const y = (Math.random()-0.5)*0.3 + (Math.random()-0.5)*0.15;
+    const r = 74 + Math.random() * 6;
+    mwP[i*3] = r*Math.cos(a); mwP[i*3+1] = r*y; mwP[i*3+2] = r*Math.sin(a);
+  }
+  const mwGeo = new THREE.BufferGeometry();
+  mwGeo.setAttribute('position', new THREE.BufferAttribute(mwP, 3));
+  scene.add(new THREE.Points(mwGeo, new THREE.PointsMaterial({
+    size:0.045, sizeAttenuation:true, color:0xbbddff,
+    transparent:true, opacity:0.38, depthWrite:false
+  })));
+
+  // ── 星雲スプライト（7色・多層レイヤー） ────────────────────
+  const nebDefs = [
+    { p:[-42, 18,-55], s:38, r:120, g:30,  b:200, o:0.14, sp:0.30 },
+    { p:[ 50,-12,-45], s:30, r:20,  g:80,  b:220, o:0.11, sp:0.40 },
+    { p:[  8, 35,-65], s:42, r:200, g:30,  b:80,  o:0.09, sp:0.25 },
+    { p:[-32,-22,-60], s:32, r:20,  g:180, b:160, o:0.10, sp:0.35 },
+    { p:[ 45, 28, 32], s:26, r:150, g:50,  b:220, o:0.08, sp:0.50 },
+    { p:[-15, -5,-50], s:20, r:255, g:120, b:50,  o:0.07, sp:0.45 },
+    { p:[ 60, 10,-20], s:24, r:80,  g:220, b:120, o:0.07, sp:0.38 },
+  ];
+  const nebulaSprites = [];
+  for (const d of nebDefs) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    const ctx = cv.getContext('2d');
+    for (let layer=0; layer<4; layer++) {
+      const ox = (Math.random()-0.5)*80, oy = (Math.random()-0.5)*80;
+      const gr = ctx.createRadialGradient(128+ox,128+oy,0, 128+ox,128+oy, 80+layer*20);
+      const a1 = (0.6-layer*0.1).toFixed(2), a2 = Math.max(0,0.15-layer*0.03).toFixed(2);
+      gr.addColorStop(0,   `rgba(${d.r},${d.g},${d.b},${a1})`);
+      gr.addColorStop(0.5, `rgba(${d.r},${d.g},${d.b},${a2})`);
+      gr.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0,0,256,256);
+    }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(cv), transparent:true, opacity:d.o,
+      depthWrite:false, blending:THREE.AdditiveBlending
+    }));
+    sp.position.set(...d.p); sp.scale.setScalar(d.s);
+    sp.userData = { base:d.o, phase:Math.random()*Math.PI*2, speed:d.sp };
+    scene.add(sp); nebulaSprites.push(sp);
+  }
+
+  // ── 遠方銀河スプライト ──────────────────────────────────────
+  function makeGalaxy(tilt, c1, c2) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    const ctx = cv.getContext('2d');
+    ctx.save(); ctx.translate(128,128); ctx.rotate(tilt); ctx.scale(1, 0.38);
+    const gr = ctx.createRadialGradient(0,0,0, 0,0,100);
+    gr.addColorStop(0,   c1); gr.addColorStop(0.25,c2);
+    gr.addColorStop(0.7, 'rgba(60,60,120,0.15)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(0,0,100,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    return new THREE.CanvasTexture(cv);
+  }
+  [
+    { p:[-52,12,-72], s:16, t:0.4, c1:'rgba(255,240,200,0.9)', c2:'rgba(180,160,255,0.4)' },
+    { p:[ 60,20,-68], s:10, t:1.2, c1:'rgba(200,220,255,0.8)', c2:'rgba(100,150,255,0.35)' },
+    { p:[  5,-30,-78],s:8,  t:2.1, c1:'rgba(255,200,180,0.7)', c2:'rgba(255,140,100,0.3)' },
+  ].forEach(g => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: makeGalaxy(g.t,g.c1,g.c2), transparent:true, opacity:0.55,
+      depthWrite:false, blending:THREE.AdditiveBlending
+    }));
+    sp.position.set(...g.p); sp.scale.setScalar(g.s); scene.add(sp);
+  });
+
+  // ── 流れ星（最大3本同時） ────────────────────────────────────
+  const shootStars = Array.from({length:3}, () => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const mat = new THREE.LineBasicMaterial({
+      color:0xffffff, transparent:true, opacity:0, depthWrite:false
+    });
+    const line = new THREE.Line(geo, mat);
+    line.userData = {
+      active:false, elapsed:Math.random()*8, cooldown:6+Math.random()*12,
+      timer:0, duration:0,
+      startPos:new THREE.Vector3(), endPos:new THREE.Vector3()
+    };
+    scene.add(line); return line;
+  });
+
+  // ── テーブルの柔らかな緑のグロー ─────────────────────────────
+  const tableGlow = new THREE.PointLight(0x00ff66, 0.30, 9);
+  tableGlow.position.set(0, 1.2, 0);
+  scene.add(tableGlow);
+
+  // ── 毎フレーム更新 ────────────────────────────────────────────
+  _updateSpace = function(dt, elapsed) {
+    // 星のきらめき（シェーダーにtime送信）
+    starUniforms.uTime.value = elapsed;
+
+    // 星雲の呼吸
+    for (const sp of nebulaSprites) {
+      sp.material.opacity = sp.userData.base *
+        (0.72 + 0.28 * Math.sin(elapsed * sp.userData.speed + sp.userData.phase));
+    }
+
+    // テーブルグロー点滅
+    tableGlow.intensity = 0.25 + 0.07 * Math.sin(elapsed * 1.3);
+
+    // 流れ星
+    for (const ss of shootStars) {
+      const u = ss.userData;
+      u.elapsed += dt;
+      if (!u.active) {
+        if (u.elapsed >= u.cooldown) {
+          u.active = true; u.elapsed = 0; u.timer = 0;
+          u.duration = 0.5 + Math.random() * 0.5;
+          const th = Math.random()*Math.PI*2, ph = 0.3+Math.random()*0.5, r=60;
+          u.startPos.set(r*Math.sin(ph)*Math.cos(th), r*Math.sin(ph)*Math.sin(th)+5, r*Math.cos(ph));
+          const dir = new THREE.Vector3((Math.random()-0.5)*0.5,-0.4-Math.random()*0.3,(Math.random()-0.5)*0.5)
+            .normalize().multiplyScalar(20);
+          u.endPos.copy(u.startPos).add(dir);
+        }
+      } else {
+        u.timer += dt;
+        const t = u.timer / u.duration;
+        if (t >= 1) {
+          u.active = false; u.cooldown = 7+Math.random()*15; u.elapsed = 0;
+          ss.material.opacity = 0;
+        } else {
+          const fade = t < 0.15 ? t/0.15 : Math.max(0,(1-t)/0.85);
+          ss.material.opacity = fade * 0.95;
+          const tailT = Math.max(0,t-0.12);
+          const pa = ss.geometry.attributes.position.array;
+          const {startPos:s, endPos:e} = u;
+          pa[0]=s.x+(e.x-s.x)*tailT; pa[1]=s.y+(e.y-s.y)*tailT; pa[2]=s.z+(e.z-s.z)*tailT;
+          pa[3]=s.x+(e.x-s.x)*t;     pa[4]=s.y+(e.y-s.y)*t;     pa[5]=s.z+(e.z-s.z)*t;
+          ss.geometry.attributes.position.needsUpdate = true;
+        }
+      }
+    }
+  };
+})();
 
 // ─── ライト ───────────────────────────────────────────────────
 const ambient  = new THREE.AmbientLight(0xffffff, 0.65);
@@ -890,8 +1122,17 @@ class SolitaireGame {
 }
 
 // ─── レンダーループ ───────────────────────────────────────────
+// ─── レンダーループ ───────────────────────────────────────────
+let _lastTime = 0;
+let _elapsed  = 0;
+
 function animate() {
   requestAnimationFrame(animate);
+  const now = performance.now() * 0.001;
+  const dt  = Math.min(now - _lastTime, 0.05);
+  _lastTime = now;
+  _elapsed += dt;
+  if (typeof _updateSpace === 'function') _updateSpace(dt, _elapsed);
   renderer.render(scene, camera);
 }
 animate();
