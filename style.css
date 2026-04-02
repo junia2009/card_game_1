@@ -34,22 +34,6 @@ body {
   align-items: flex-end;
 }
 
-/* ポートレート: canvas は JS で回転済みのため UI のみ調整 */
-@media (orientation: portrait) {
-  #ui-overlay {
-    flex-direction: row;
-    flex-wrap: wrap;
-    left: 0;
-    right: 0;
-    top: max(8px, env(safe-area-inset-top));
-    justify-content: flex-end;
-    padding-right: max(8px, env(safe-area-inset-right));
-    gap: 6px;
-  }
-  .ui-btn          { padding: 5px 12px; font-size: 0.85em; }
-  #score-display,
-  #moves-display   { padding: 4px 10px; font-size: 0.82em; }
-}
 
 .ui-btn {
   background: rgba(30, 40, 60, 0.88);

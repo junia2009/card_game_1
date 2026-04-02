@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.2.4
+//  3D Solitaire (Klondike)  –  main.js  v2.2.5
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -33,33 +33,25 @@ container.appendChild(renderer.domElement);
 // アスペクト比に応じてカメラとレンダラーを調整
 // ポートレート時は canvas を -90° 回転してランドスケープ画面を縦督面に全画面表示
 function fitCamera() {
-  const isPortrait = window.innerHeight > window.innerWidth;
-
-  // canvasはCSS変形なしで常に画面いっぱい
+  // canvas は常に画面いっぱい
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.domElement.style.transform       = '';
-  renderer.domElement.style.left            = '';
-  renderer.domElement.style.top             = '';
-  renderer.domElement.style.position        = '';
+  renderer.domElement.style.transform = '';
+  renderer.domElement.style.left      = '';
+  renderer.domElement.style.top       = '';
+  renderer.domElement.style.position  = '';
 
   camera.aspect = window.innerWidth / window.innerHeight;
+  camera.up.set(0, 1, 0);   // 常に標準向き（回転なし）
 
-  if (isPortrait) {
-    // ポートレート: camera.up で視点を90°回転（X軸 = 画面上方）
-    camera.up.set(1, 0, 0);
-    const aspect = window.innerWidth / window.innerHeight;
-    const camY   = 14;
-    // ゲームコンテンツのZ範囲: 組札Z=-3.4 〜 tableau最大+4.0, 中心0.3, 余白込み半幅=4.2
-    // アスペクト比に応じてFOVを動的計算 → どのデバイスでもぴったり収まる
-    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(4.2 / (aspect * camY)));
-    camera.position.set(0, camY, 1.5);
-    camera.lookAt(0, 0, 0.3);
-  } else {
-    camera.up.set(0, 1, 0);
-    camera.fov = 45;
-    camera.position.set(0, 14, 2);
-    camera.lookAt(0, 0, -0.8);
-  }
+  const camY   = 14;
+  const HALF_W = 6.2;  // TABLE_W/2 + 余白
+  // 横幅が常にテーブル全体を収めるよう縦FOVを計算。landscape は最低 45°
+  camera.fov = Math.max(
+    45,
+    THREE.MathUtils.radToDeg(2 * Math.atan(HALF_W / (camera.aspect * camY)))
+  );
+  camera.position.set(0, camY, 2);
+  camera.lookAt(0, 0, -0.8);
   camera.updateProjectionMatrix();
 }
 fitCamera();
