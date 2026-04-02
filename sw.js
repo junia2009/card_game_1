@@ -1,5 +1,5 @@
-// Service Worker – 3D Solitaire v2.0.0
-const CACHE = 'solitaire-v2';
+// Service Worker – 3D Solitaire v2.2.5
+const CACHE = 'solitaire-v4';
 
 const PRECACHE = [
   './index.html',
