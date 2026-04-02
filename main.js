@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.1.2
+//  3D Solitaire (Klondike)  –  main.js  v2.1.3
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -68,7 +68,8 @@ window.addEventListener('resize', fitCamera);
 
 // ─── 宇宙背景 ──────────────────────────────────────────────────
 // 最高品質の宇宙体験: 星シェーダー・天の川・星雲・銀河・流れ星・テーブルグロー
-let _updateSpace = null;
+let _updateSpace   = null;
+let _tableRimMat  = null;
 
 (function initSpaceBackground() {
   // 深宇宙の背景球（裏返し）
@@ -309,14 +310,100 @@ scene.add(dirLight);
 // ─── テーブル ─────────────────────────────────────────────────
 const TABLE_W = 11.5;
 const TABLE_H = 8.0;
-const tableGeo = new THREE.BoxGeometry(TABLE_W, 0.3, TABLE_H);
-const tableMat = new THREE.MeshPhysicalMaterial({
-  color: 0x2a7a50, roughness: 0.75, metalness: 0.05
-});
-const tableMesh = new THREE.Mesh(tableGeo, tableMat);
-tableMesh.position.y = -0.18;
-tableMesh.receiveShadow = true;
-scene.add(tableMesh);
+
+// テーブル面テクスチャ: ホログラフィックグリッド + 中央グロー
+(function buildTableTex() {
+  const sz = 512;
+  const tc = document.createElement('canvas');
+  tc.width = tc.height = sz;
+  const x = tc.getContext('2d');
+
+  // ベース: 深宇宙色
+  x.fillStyle = '#060d1a';
+  x.fillRect(0, 0, sz, sz);
+
+  // 中央の柔らかいグロー
+  const g1 = x.createRadialGradient(sz/2, sz/2, 20, sz/2, sz/2, sz*0.55);
+  g1.addColorStop(0,   'rgba(0, 200, 140, 0.22)');
+  g1.addColorStop(0.4, 'rgba(0,  70, 160, 0.14)');
+  g1.addColorStop(1,   'rgba(0,   0,   0, 0.00)');
+  x.fillStyle = g1;
+  x.fillRect(0, 0, sz, sz);
+
+  // 細グリッド線
+  const step = sz / 10;
+  x.strokeStyle = 'rgba(0, 220, 160, 0.07)';
+  x.lineWidth = 0.8;
+  for (let i = 0; i <= sz; i += step) {
+    x.beginPath(); x.moveTo(i, 0); x.lineTo(i, sz); x.stroke();
+    x.beginPath(); x.moveTo(0, i); x.lineTo(sz, i); x.stroke();
+  }
+
+  // 中心十字アクセント
+  x.strokeStyle = 'rgba(0, 255, 180, 0.10)';
+  x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(sz/2, 0); x.lineTo(sz/2, sz); x.stroke();
+  x.beginPath(); x.moveTo(0, sz/2); x.lineTo(sz, sz/2); x.stroke();
+
+  const tex = new THREE.CanvasTexture(tc);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+
+  const tableGeo = new THREE.BoxGeometry(TABLE_W, 0.18, TABLE_H);
+  const tableMat = new THREE.MeshPhysicalMaterial({
+    map:              tex,
+    color:            0x0a1e35,
+    emissive:         new THREE.Color(0x021530),
+    emissiveIntensity: 0.8,
+    roughness:        0.18,
+    metalness:        0.55,
+    transparent:      true,
+    opacity:          0.86,
+  });
+  const tableMesh = new THREE.Mesh(tableGeo, tableMat);
+  tableMesh.position.y = -0.18;
+  tableMesh.receiveShadow = true;
+  scene.add(tableMesh);
+
+  // 縁グロー: テーブル外周に浮かぶ発光プレーン
+  _tableRimMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite:  false,
+    blending:    THREE.AdditiveBlending,
+    side:        THREE.DoubleSide,
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec2 vUv;
+      void main() {
+        vec2 uv  = vUv - 0.5;        // -0.5 .. 0.5
+        vec2 ab  = abs(uv);
+        // 外周フレームのみ光る
+        float edge = max(ab.x, ab.y);
+        float rim  = smoothstep(0.47, 0.50, edge) * smoothstep(0.505, 0.48, edge);
+        // 角コーナー強調
+        float corner = smoothstep(0.35, 0.50, ab.x + ab.y - 0.48);
+        rim = max(rim, corner * 0.6);
+        // 呼吸する色: シアン↔ティール
+        float t   = sin(uTime * 0.9) * 0.5 + 0.5;
+        vec3 col  = mix(vec3(0.0, 0.85, 0.55), vec3(0.0, 0.55, 1.0), t);
+        float alpha = rim * (0.55 + 0.25 * sin(uTime * 1.4)) * 0.9;
+        gl_FragColor = vec4(col * alpha, alpha);
+      }
+    `
+  });
+  const rimGeo  = new THREE.PlaneGeometry(TABLE_W + 0.9, TABLE_H + 0.9);
+  const rimMesh = new THREE.Mesh(rimGeo, _tableRimMat);
+  rimMesh.rotation.x = -Math.PI / 2;
+  rimMesh.position.y = -0.09;
+  scene.add(rimMesh);
+})();
 
 // ─── 定数 ─────────────────────────────────────────────────────
 const CARD_W   = 1.05;
@@ -1139,6 +1226,7 @@ function animate() {
   _lastTime = now;
   _elapsed += dt;
   if (typeof _updateSpace === 'function') _updateSpace(dt, _elapsed);
+  if (_tableRimMat) _tableRimMat.uniforms.uTime.value = _elapsed;
   renderer.render(scene, camera);
 }
 animate();
