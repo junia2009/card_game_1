@@ -34,6 +34,28 @@ body {
   align-items: flex-end;
 }
 
+/* ポートレート: 上部横並びバーに切り替え */
+@media (orientation: portrait) {
+  #ui-overlay {
+    flex-direction: row;
+    flex-wrap: wrap;
+    left: 0;
+    right: 0;
+    top: max(8px, env(safe-area-inset-top));
+    justify-content: flex-end;
+    padding-right: max(8px, env(safe-area-inset-right));
+    gap: 6px;
+  }
+  .ui-btn {
+    padding: 5px 12px;
+    font-size: 0.85em;
+  }
+  #score-display, #moves-display {
+    padding: 4px 10px;
+    font-size: 0.82em;
+  }
+}
+
 .ui-btn {
   background: rgba(30, 40, 60, 0.88);
   color: #e8f0ff;
@@ -83,6 +105,12 @@ body {
   bottom: max(50px, calc(env(safe-area-inset-bottom) + 50px));
   right: max(12px, env(safe-area-inset-right));
   z-index: 20;
+}
+
+@media (orientation: portrait) {
+  #btn-guide-open {
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
 }
 
 /* ===== クリア画面 ===== */

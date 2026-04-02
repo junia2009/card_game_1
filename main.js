@@ -23,8 +23,6 @@ const scene     = new THREE.Scene();
 scene.background = new THREE.Color(0x1a2035);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 14, 2);
-camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -32,11 +30,27 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+// アスペクト比に応じてカメラを調整
+// ポートレート時はテーブル全幅が収まるよう高度とFOVを引き上げる
+function fitCamera() {
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = aspect;
+  if (aspect < 1) {
+    // ポートレート: カメラを高く、FOVを広く
+    camera.position.set(0, 20, 2.5);
+    camera.fov = 78;
+  } else {
+    // ランドスケープ: 通常設定
+    camera.position.set(0, 14, 2);
+    camera.fov = 45;
+  }
+  camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
+fitCamera();
+
+window.addEventListener('resize', fitCamera);
 
 // ─── ライト ───────────────────────────────────────────────────
 const ambient  = new THREE.AmbientLight(0xffffff, 0.65);
