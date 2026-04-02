@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.2.0
+//  3D Solitaire (Klondike)  –  main.js  v2.2.1
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -323,7 +323,8 @@ let _tableRimMat  = null;
   const asteroids = [];
   for (let i = 0; i < 40; i++) {
     const angle = (i / 40) * Math.PI * 2 + Math.random() * 0.4;
-    const r     = 60 + (Math.random() - 0.5) * 14;
+    // カメラ視野内に収まるよう r=8〜18（テーブル周囲〜少し外側）
+    const r     = 8 + Math.random() * 10;
     const geo   = new THREE.IcosahedronGeometry(0.12 + Math.random() * 0.28, 0);
     const bri   = 0.18 + Math.random() * 0.18;
     const mesh  = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
@@ -370,17 +371,20 @@ let _tableRimMat  = null;
     ctx.fillRect(58, 74, 12, 6);
     return new THREE.CanvasTexture(cv);
   }
+  // 軌道定義: cx/cy/cz = 軌道中心 (カメラ視点で背景に見える位置)
+  // rx/rz = 長軸/短軸, speed = 角速度, yAmp/yFreq = 上下ゆらぎ
   const shipDefs = [
-    { r:100, g:180, b:255, speed:0.18, size:2.0, orbitR:32, orbitY: 7, phase:0.0,  yFreq:0.7 },
-    { r:255, g:110, b: 60, speed:0.14, size:2.4, orbitR:44, orbitY:-4, phase:2.1,  yFreq:0.5 },
-    { r: 80, g:255, b:150, speed:0.22, size:1.6, orbitR:26, orbitY:10, phase:4.2,  yFreq:1.0 },
-    { r:200, g: 80, b:255, speed:0.10, size:3.2, orbitR:55, orbitY: 2, phase:1.0,  yFreq:0.3 },
+    { r:100, g:180, b:255, speed: 0.22, size:5.5, cx:  0, cy: 7, cz:-24, rx:10, rz: 6, phase:0.0, yAmp:1.8, yFreq:0.7 },
+    { r:255, g:110, b: 55, speed:-0.16, size:6.5, cx: -7, cy: 5, cz:-18, rx: 8, rz:10, phase:2.1, yAmp:1.2, yFreq:0.5 },
+    { r: 60, g:255, b:140, speed: 0.30, size:4.5, cx:  6, cy: 9, cz:-32, rx:12, rz: 7, phase:4.5, yAmp:2.0, yFreq:1.0 },
+    { r:200, g: 70, b:255, speed:-0.11, size:8.0, cx: -4, cy: 4, cz:-14, rx:14, rz: 9, phase:1.2, yAmp:2.5, yFreq:0.4 },
   ];
   const ships = shipDefs.map(d => {
-    const TRAIL = 28;
+    const TRAIL = 36;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: makeShipTex(d.r, d.g, d.b),
-      transparent:true, opacity:0.92, depthWrite:false, blending:THREE.AdditiveBlending
+      transparent:true, opacity:0.96, depthWrite:false,
+      blending:THREE.NormalBlending   // AdditiveだとほぼBlackに溶けるのでNormalに
     }));
     sprite.scale.setScalar(d.size);
 
@@ -434,13 +438,13 @@ let _tableRimMat  = null;
     // 宇宙船の軌道更新
     for (const ship of ships) {
       const ang  = elapsed * ship.speed + ship.phase;
-      const x    = Math.cos(ang) * ship.orbitR;
-      const z    = Math.sin(ang) * ship.orbitR;
-      const y    = ship.orbitY + Math.sin(elapsed * ship.yFreq + ship.phase) * 2.5;
-      // 進行方向に向ける
-      const nAng = ang + 0.01;
-      const dx   = Math.cos(nAng) * ship.orbitR - x;
-      const dz   = Math.sin(nAng) * ship.orbitR - z;
+      const x    = ship.cx + ship.rx * Math.cos(ang);
+      const y    = ship.cy + ship.yAmp * Math.sin(elapsed * ship.yFreq + ship.phase);
+      const z    = ship.cz + ship.rz * Math.sin(ang);
+
+      // 進行方向（XZ面の接線ベクトル）
+      const dx = -ship.rx * Math.sin(ang) * ship.speed;
+      const dz =  ship.rz * Math.cos(ang) * ship.speed;
       ship.sprite.material.rotation = -Math.atan2(dx, -dz) + Math.PI / 2;
       ship.sprite.position.set(x, y, z);
 
