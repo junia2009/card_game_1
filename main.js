@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.2.1
+//  3D Solitaire (Klondike)  –  main.js  v2.2.2
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -340,72 +340,77 @@ let _tableRimMat  = null;
     scene.add(mesh); asteroids.push(mesh);
   }
 
-  // ── 宇宙船 ──────────────────────────────────────────────────
-  function makeShipTex(r, g, b) {
+  // ── 宇宙船（神秘エネルギー体 × 4） ──────────────────────────
+  // カメラ y=14 / テーブル y=0 → y=5〜9 に置くと確実に視野内に浮かぶ
+
+  // 発光オーラスプライト（AdditiveBlending で自然に輝く）
+  function makeAuraSprite(hex, sz) {
+    const r = hex>>16&255, g = hex>>8&255, b = hex&255;
     const cv = document.createElement('canvas'); cv.width = cv.height = 128;
     const ctx = cv.getContext('2d');
-    // エンジングロー
-    const eg = ctx.createRadialGradient(64, 80, 0, 64, 72, 52);
-    eg.addColorStop(0,   `rgba(${r},${g},${b},0.9)`);
-    eg.addColorStop(0.4, `rgba(${r},${g},${b},0.3)`);
-    eg.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.fillStyle = eg; ctx.fillRect(0,0,128,128);
-    // 船体本体
-    const rr = Math.min(255,r+90), gg = Math.min(255,g+90), bb = Math.min(255,b+90);
-    ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
-    ctx.beginPath();
-    ctx.moveTo(64, 14);            // 先端
-    ctx.lineTo(96, 88);            // 右翼端
-    ctx.lineTo(76, 72);            // 右翼付け根
-    ctx.lineTo(64, 80);            // 後部中央
-    ctx.lineTo(52, 72);            // 左翼付け根
-    ctx.lineTo(32, 88);            // 左翼端
-    ctx.closePath(); ctx.fill();
-    // コックピット
-    const cg = ctx.createRadialGradient(64, 44, 0, 64, 44, 12);
-    cg.addColorStop(0, 'rgba(200,240,255,1)');
-    cg.addColorStop(1, `rgba(${r},${g},${b},0.5)`);
-    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(64, 44, 10, 0, Math.PI*2); ctx.fill();
-    // エンジンノズル
-    ctx.fillStyle = `rgba(${Math.min(255,r+120)},${Math.min(255,g+120)},${Math.min(255,b+120)}, 0.8)`;
-    ctx.fillRect(58, 74, 12, 6);
-    return new THREE.CanvasTexture(cv);
-  }
-  // 軌道定義: cx/cy/cz = 軌道中心 (カメラ視点で背景に見える位置)
-  // rx/rz = 長軸/短軸, speed = 角速度, yAmp/yFreq = 上下ゆらぎ
-  const shipDefs = [
-    { r:100, g:180, b:255, speed: 0.22, size:5.5, cx:  0, cy: 7, cz:-24, rx:10, rz: 6, phase:0.0, yAmp:1.8, yFreq:0.7 },
-    { r:255, g:110, b: 55, speed:-0.16, size:6.5, cx: -7, cy: 5, cz:-18, rx: 8, rz:10, phase:2.1, yAmp:1.2, yFreq:0.5 },
-    { r: 60, g:255, b:140, speed: 0.30, size:4.5, cx:  6, cy: 9, cz:-32, rx:12, rz: 7, phase:4.5, yAmp:2.0, yFreq:1.0 },
-    { r:200, g: 70, b:255, speed:-0.11, size:8.0, cx: -4, cy: 4, cz:-14, rx:14, rz: 9, phase:1.2, yAmp:2.5, yFreq:0.4 },
-  ];
-  const ships = shipDefs.map(d => {
-    const TRAIL = 36;
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: makeShipTex(d.r, d.g, d.b),
-      transparent:true, opacity:0.96, depthWrite:false,
-      blending:THREE.NormalBlending   // AdditiveだとほぼBlackに溶けるのでNormalに
+    const gr = ctx.createRadialGradient(64,64,0, 64,64,64);
+    gr.addColorStop(0,    'rgba(255,255,255,1.0)');
+    gr.addColorStop(0.10, `rgba(${r},${g},${b},1.0)`);
+    gr.addColorStop(0.40, `rgba(${r},${g},${b},0.35)`);
+    gr.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0,0,128,128);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(cv),
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending
     }));
-    sprite.scale.setScalar(d.size);
+    sp.scale.setScalar(sz);
+    return sp;
+  }
 
-    // エンジントレイル
-    const tPos  = new Float32Array(TRAIL * 3);
-    const tGeo  = new THREE.BufferGeometry();
+  // タイプ別 3D 船体ファクトリ
+  function makeMysticalShip(type, hex) {
+    const col = new THREE.Color(hex);
+    const mat = new THREE.MeshBasicMaterial({ color: col, transparent:true, opacity:0.90 });
+    const wf  = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe:true, transparent:true, opacity:0.40 });
+    const grp = new THREE.Group();
+    if (type === 'ring') {
+      // 二重光輪
+      grp.add(new THREE.Mesh(new THREE.TorusGeometry(0.60, 0.11, 8, 48), mat));
+      grp.add(new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.05, 6, 32),
+        new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.70 })));
+    } else if (type === 'crystal') {
+      // 輝く八面体クリスタル
+      grp.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), mat));
+      grp.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.60, 0), wf));
+    } else if (type === 'orb') {
+      // プラズマ球 + 赤道リング
+      grp.add(new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 12), mat));
+      grp.add(new THREE.Mesh(new THREE.TorusGeometry(0.56, 0.04, 6, 32),
+        new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.55 })));
+    } else {
+      // 二十面体ダイヤモンド
+      grp.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.52, 0), mat));
+      grp.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.56, 0), wf));
+    }
+    grp.add(makeAuraSprite(hex, 3.8));   // 大きな発光オーラ
+    return grp;
+  }
+
+  const mysticalShipDefs = [
+    { type:'ring',    hex:0x00eeff, y:7.5, sp:0.80, ph:0.0 },
+    { type:'crystal', hex:0xcc44ff, y:5.5, sp:1.10, ph:1.7 },
+    { type:'orb',     hex:0xffcc00, y:8.2, sp:0.65, ph:3.3 },
+    { type:'diamond', hex:0x44aaff, y:6.2, sp:1.35, ph:5.0 },
+  ];
+  const mysticalShips = mysticalShipDefs.map(d => {
+    const group = makeMysticalShip(d.type, d.hex);
+    const TRAIL = 50;
+    const tPos = new Float32Array(TRAIL * 3);
+    const tGeo = new THREE.BufferGeometry();
     tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
     tGeo.setDrawRange(0, 0);
-    const tMat  = new THREE.LineBasicMaterial({
-      color: new THREE.Color(d.r/255, d.g/255, d.b/255),
-      transparent:true, opacity:0.45, depthWrite:false, blending:THREE.AdditiveBlending
-    });
-    const trail = new THREE.Line(tGeo, tMat);
-
-    // エンジングローポイントライト
-    const glow = new THREE.PointLight(
-      new THREE.Color(d.r/255, d.g/255, d.b/255), 0.0, 6
-    );
-
-    scene.add(sprite); scene.add(trail); scene.add(glow);
-    return { sprite, trail, tPos, TRAIL, glow, hist:[], ...d };
+    const trail = new THREE.Line(tGeo, new THREE.LineBasicMaterial({
+      color: new THREE.Color(d.hex),
+      transparent:true, opacity:0.55, depthWrite:false, blending:THREE.AdditiveBlending
+    }));
+    const light = new THREE.PointLight(new THREE.Color(d.hex), 1.0, 7);
+    scene.add(group, trail, light);
+    return { group, trail, tPos, TRAIL, hist:[], light, ...d };
   });
 
   // ── 毎フレーム更新 ────────────────────────────────────────────
@@ -435,24 +440,32 @@ let _tableRimMat  = null;
       ast.rotation.y += u.spinY * dt;
     }
 
-    // 宇宙船の軌道更新
-    for (const ship of ships) {
-      const ang  = elapsed * ship.speed + ship.phase;
-      const x    = ship.cx + ship.rx * Math.cos(ang);
-      const y    = ship.cy + ship.yAmp * Math.sin(elapsed * ship.yFreq + ship.phase);
-      const z    = ship.cz + ship.rz * Math.sin(ang);
-
-      // 進行方向（XZ面の接線ベクトル）
-      const dx = -ship.rx * Math.sin(ang) * ship.speed;
-      const dz =  ship.rz * Math.cos(ang) * ship.speed;
-      ship.sprite.material.rotation = -Math.atan2(dx, -dz) + Math.PI / 2;
-      ship.sprite.position.set(x, y, z);
-
-      // エンジングロー
-      ship.glow.position.set(x, y, z);
-      ship.glow.intensity = 0.4 + 0.3 * Math.sin(elapsed * 8 + ship.phase);
-
-      // トレイル更新
+    // 神秘エネルギー体の更新
+    // Lissajous 軌跡: x=5.2*sin(t), z=2.8*sin(0.7t+1.1) → 視野内を8の字で周回
+    for (const ship of mysticalShips) {
+      const t = elapsed * ship.sp + ship.ph;
+      const x = 5.2 * Math.sin(t);
+      const z = 2.8 * Math.sin(t * 0.7 + 1.1);
+      const y = ship.y + 0.9 * Math.sin(t * 1.3);
+      ship.group.position.set(x, y, z);
+      ship.light.position.set(x, y, z);
+      ship.light.intensity = 0.7 + 0.4 * Math.sin(elapsed * 4 + ship.ph);
+      // タイプ別アニメ
+      if (ship.type === 'ring') {
+        ship.group.rotation.y += dt * 2.0;
+        ship.group.rotation.x  = Math.sin(t * 0.4) * 0.6;
+      } else if (ship.type === 'crystal') {
+        ship.group.rotation.x += dt * 1.5;
+        ship.group.rotation.z += dt * 2.0;
+      } else if (ship.type === 'orb') {
+        ship.group.rotation.y += dt * 1.0;
+        const s = 1 + 0.12 * Math.sin(elapsed * 3 + ship.ph);
+        ship.group.scale.setScalar(s);
+      } else {
+        ship.group.rotation.x += dt * 1.2;
+        ship.group.rotation.y += dt * 0.8;
+      }
+      // トレイル
       ship.hist.push([x, y, z]);
       if (ship.hist.length > ship.TRAIL) ship.hist.shift();
       for (let i = 0; i < ship.hist.length; i++) {
