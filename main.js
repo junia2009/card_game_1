@@ -1,5 +1,5 @@
 // ============================================================
-//  3D Solitaire (Klondike)  –  main.js  v2.1.3
+//  3D Solitaire (Klondike)  –  main.js  v2.2.0
 // ============================================================
 
 // ─── canvas.roundRect ポリフィル ──────────────────────────────
@@ -250,6 +250,160 @@ let _tableRimMat  = null;
   tableGlow.position.set(0, 1.2, 0);
   scene.add(tableGlow);
 
+  // ── 惑星（大気圏リム付き） ─────────────────────────────────
+  (function addPlanet() {
+    const sz = 512;
+    const pc = document.createElement('canvas'); pc.width = pc.height = sz;
+    const px = pc.getContext('2d');
+    // ベース
+    const baseG = px.createRadialGradient(sz*0.4, sz*0.35, 0, sz/2, sz/2, sz/2);
+    baseG.addColorStop(0,   '#4a80e0');
+    baseG.addColorStop(0.3, '#1a3a8a');
+    baseG.addColorStop(0.7, '#0d1f5c');
+    baseG.addColorStop(1,   '#080e30');
+    px.fillStyle = baseG; px.fillRect(0, 0, sz, sz);
+    // 帯雲
+    const bandColors = [
+      'rgba(80,130,220,0.35)', 'rgba(120,80,200,0.25)',
+      'rgba(40,100,180,0.40)', 'rgba(160,100,255,0.20)',
+      'rgba(60,150,240,0.30)',
+    ];
+    for (let i = 0; i < 14; i++) {
+      const y  = sz * (i / 14) + (Math.random()-0.5)*10;
+      const h  = sz * (0.03 + Math.random() * 0.055);
+      const cx = sz/2 + (Math.random()-0.5)*60;
+      const bg = px.createLinearGradient(0, y, sz, y+h);
+      const bc = bandColors[i % bandColors.length];
+      bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(0.3, bc);
+      bg.addColorStop(0.7, bc); bg.addColorStop(1, 'rgba(0,0,0,0)');
+      px.fillStyle = bg; px.fillRect(0, y, sz, h);
+    }
+    // 大きな嵐スポット
+    const sg = px.createRadialGradient(sz*0.6, sz*0.55, 0, sz*0.6, sz*0.55, sz*0.09);
+    sg.addColorStop(0,   'rgba(255,180,80,0.5)');
+    sg.addColorStop(0.5, 'rgba(220,120,40,0.3)');
+    sg.addColorStop(1,   'rgba(0,0,0,0)');
+    px.fillStyle = sg; px.fillRect(0, 0, sz, sz);
+
+    const planetMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(7, 48, 48),
+      new THREE.MeshPhongMaterial({
+        map:       new THREE.CanvasTexture(pc),
+        emissive:  new THREE.Color(0x050a25),
+        emissiveIntensity: 0.4,
+        shininess: 80,
+      })
+    );
+    planetMesh.position.set(-52, 18, -58);
+    scene.add(planetMesh);
+
+    // 大気圏グロー
+    const ac = document.createElement('canvas'); ac.width = ac.height = 256;
+    const ax = ac.getContext('2d');
+    const ag = ax.createRadialGradient(128,128,82, 128,128,128);
+    ag.addColorStop(0,   'rgba(0,0,0,0)');
+    ag.addColorStop(0.55,'rgba(40,90,255,0)');
+    ag.addColorStop(0.75,'rgba(80,150,255,0.5)');
+    ag.addColorStop(0.88,'rgba(130,200,255,0.25)');
+    ag.addColorStop(1,   'rgba(0,0,0,0)');
+    ax.fillStyle = ag; ax.fillRect(0,0,256,256);
+    const atmoSp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(ac),
+      transparent:true, opacity:0.9, depthWrite:false, blending:THREE.AdditiveBlending
+    }));
+    atmoSp.scale.setScalar(18); atmoSp.position.set(-52, 18, -58);
+    scene.add(atmoSp);
+
+    // 惑星ライト
+    const pLight = new THREE.PointLight(0x4466ff, 0.15, 40);
+    pLight.position.set(-52, 18, -58); scene.add(pLight);
+  })();
+
+  // ── 小惑星ベルト ────────────────────────────────────────────
+  const asteroids = [];
+  for (let i = 0; i < 40; i++) {
+    const angle = (i / 40) * Math.PI * 2 + Math.random() * 0.4;
+    const r     = 60 + (Math.random() - 0.5) * 14;
+    const geo   = new THREE.IcosahedronGeometry(0.12 + Math.random() * 0.28, 0);
+    const bri   = 0.18 + Math.random() * 0.18;
+    const mesh  = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
+      color: new THREE.Color(bri + 0.05, bri, bri * 0.85)
+    }));
+    mesh.position.set(r*Math.cos(angle), (Math.random()-0.5)*10, r*Math.sin(angle));
+    mesh.userData = {
+      orbitR: r, angle,
+      orbitSpeed: (0.012 + Math.random()*0.018) * (Math.random()>0.5 ? 1 : -1),
+      spinX: (Math.random()-0.5)*1.8, spinY: (Math.random()-0.5)*1.5,
+      baseY: mesh.position.y,
+    };
+    scene.add(mesh); asteroids.push(mesh);
+  }
+
+  // ── 宇宙船 ──────────────────────────────────────────────────
+  function makeShipTex(r, g, b) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const ctx = cv.getContext('2d');
+    // エンジングロー
+    const eg = ctx.createRadialGradient(64, 80, 0, 64, 72, 52);
+    eg.addColorStop(0,   `rgba(${r},${g},${b},0.9)`);
+    eg.addColorStop(0.4, `rgba(${r},${g},${b},0.3)`);
+    eg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = eg; ctx.fillRect(0,0,128,128);
+    // 船体本体
+    const rr = Math.min(255,r+90), gg = Math.min(255,g+90), bb = Math.min(255,b+90);
+    ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+    ctx.beginPath();
+    ctx.moveTo(64, 14);            // 先端
+    ctx.lineTo(96, 88);            // 右翼端
+    ctx.lineTo(76, 72);            // 右翼付け根
+    ctx.lineTo(64, 80);            // 後部中央
+    ctx.lineTo(52, 72);            // 左翼付け根
+    ctx.lineTo(32, 88);            // 左翼端
+    ctx.closePath(); ctx.fill();
+    // コックピット
+    const cg = ctx.createRadialGradient(64, 44, 0, 64, 44, 12);
+    cg.addColorStop(0, 'rgba(200,240,255,1)');
+    cg.addColorStop(1, `rgba(${r},${g},${b},0.5)`);
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(64, 44, 10, 0, Math.PI*2); ctx.fill();
+    // エンジンノズル
+    ctx.fillStyle = `rgba(${Math.min(255,r+120)},${Math.min(255,g+120)},${Math.min(255,b+120)}, 0.8)`;
+    ctx.fillRect(58, 74, 12, 6);
+    return new THREE.CanvasTexture(cv);
+  }
+  const shipDefs = [
+    { r:100, g:180, b:255, speed:0.18, size:2.0, orbitR:32, orbitY: 7, phase:0.0,  yFreq:0.7 },
+    { r:255, g:110, b: 60, speed:0.14, size:2.4, orbitR:44, orbitY:-4, phase:2.1,  yFreq:0.5 },
+    { r: 80, g:255, b:150, speed:0.22, size:1.6, orbitR:26, orbitY:10, phase:4.2,  yFreq:1.0 },
+    { r:200, g: 80, b:255, speed:0.10, size:3.2, orbitR:55, orbitY: 2, phase:1.0,  yFreq:0.3 },
+  ];
+  const ships = shipDefs.map(d => {
+    const TRAIL = 28;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: makeShipTex(d.r, d.g, d.b),
+      transparent:true, opacity:0.92, depthWrite:false, blending:THREE.AdditiveBlending
+    }));
+    sprite.scale.setScalar(d.size);
+
+    // エンジントレイル
+    const tPos  = new Float32Array(TRAIL * 3);
+    const tGeo  = new THREE.BufferGeometry();
+    tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
+    tGeo.setDrawRange(0, 0);
+    const tMat  = new THREE.LineBasicMaterial({
+      color: new THREE.Color(d.r/255, d.g/255, d.b/255),
+      transparent:true, opacity:0.45, depthWrite:false, blending:THREE.AdditiveBlending
+    });
+    const trail = new THREE.Line(tGeo, tMat);
+
+    // エンジングローポイントライト
+    const glow = new THREE.PointLight(
+      new THREE.Color(d.r/255, d.g/255, d.b/255), 0.0, 6
+    );
+
+    scene.add(sprite); scene.add(trail); scene.add(glow);
+    return { sprite, trail, tPos, TRAIL, glow, hist:[], ...d };
+  });
+
   // ── 毎フレーム更新 ────────────────────────────────────────────
   _updateSpace = function(dt, elapsed) {
     // 星のきらめき（シェーダーにtime送信）
@@ -263,6 +417,48 @@ let _tableRimMat  = null;
 
     // テーブルグロー点滅
     tableGlow.intensity = 0.25 + 0.07 * Math.sin(elapsed * 1.3);
+
+    // 小惑星の公転 + 自転
+    for (const ast of asteroids) {
+      const u = ast.userData;
+      u.angle += u.orbitSpeed * dt;
+      ast.position.set(
+        u.orbitR * Math.cos(u.angle),
+        u.baseY  + Math.sin(elapsed * 0.4 + u.angle) * 0.8,
+        u.orbitR * Math.sin(u.angle)
+      );
+      ast.rotation.x += u.spinX * dt;
+      ast.rotation.y += u.spinY * dt;
+    }
+
+    // 宇宙船の軌道更新
+    for (const ship of ships) {
+      const ang  = elapsed * ship.speed + ship.phase;
+      const x    = Math.cos(ang) * ship.orbitR;
+      const z    = Math.sin(ang) * ship.orbitR;
+      const y    = ship.orbitY + Math.sin(elapsed * ship.yFreq + ship.phase) * 2.5;
+      // 進行方向に向ける
+      const nAng = ang + 0.01;
+      const dx   = Math.cos(nAng) * ship.orbitR - x;
+      const dz   = Math.sin(nAng) * ship.orbitR - z;
+      ship.sprite.material.rotation = -Math.atan2(dx, -dz) + Math.PI / 2;
+      ship.sprite.position.set(x, y, z);
+
+      // エンジングロー
+      ship.glow.position.set(x, y, z);
+      ship.glow.intensity = 0.4 + 0.3 * Math.sin(elapsed * 8 + ship.phase);
+
+      // トレイル更新
+      ship.hist.push([x, y, z]);
+      if (ship.hist.length > ship.TRAIL) ship.hist.shift();
+      for (let i = 0; i < ship.hist.length; i++) {
+        ship.tPos[i*3]   = ship.hist[i][0];
+        ship.tPos[i*3+1] = ship.hist[i][1];
+        ship.tPos[i*3+2] = ship.hist[i][2];
+      }
+      ship.trail.geometry.attributes.position.needsUpdate = true;
+      ship.trail.geometry.setDrawRange(0, ship.hist.length);
+    }
 
     // 流れ星
     for (const ss of shootStars) {
